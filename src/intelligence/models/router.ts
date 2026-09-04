@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   ModelProvider,
   ModelRequest,
   ModelResponse,
@@ -15,6 +15,10 @@ export class ModelRouter {
     return this.providers.has(providerId);
   }
 
+  getProvider(providerId: string): ModelProvider | undefined {
+    return this.providers.get(providerId);
+  }
+
   async generate(
     providerId: string,
     request: ModelRequest,
@@ -22,9 +26,26 @@ export class ModelRouter {
     const provider = this.providers.get(providerId);
 
     if (!provider) {
-      throw new Error(`Model provider not registered: ${providerId}`);
+      throw new Error(
+        `Model provider not registered: ${providerId}`,
+      );
     }
 
-    return provider.generate(request);
+    const response = await provider.generate(request);
+
+    if (!response.usage) {
+      return response;
+    }
+
+    return {
+      ...response,
+      usage: {
+        ...response.usage,
+        totalTokens:
+          response.usage.totalTokens ??
+          (response.usage.inputTokens ?? 0) +
+            (response.usage.outputTokens ?? 0),
+      },
+    };
   }
 }
