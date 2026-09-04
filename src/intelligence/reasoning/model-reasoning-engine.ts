@@ -1,7 +1,5 @@
-﻿import type {
-  ModelMessage,
-  ModelRouter,
-} from "../models/router.js";
+﻿import type { ModelMessage } from "../models/types.js";
+import { ModelRouter } from "../models/router.js";
 import type {
   ReasoningContext,
   ReasoningResult,

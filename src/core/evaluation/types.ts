@@ -5,6 +5,7 @@ export interface Evaluation {
   readonly score: number;
   readonly explanation: string;
   readonly discrepancies: readonly string[];
+  readonly completed: boolean;
 }
 
 export interface EvaluationContext {
