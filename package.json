@@ -1,0 +1,27 @@
+{
+  "name": "@kyledev/kairos",
+  "version": "0.1.0",
+  "description": "**KyleDev Autonomous Intelligence & Reasoning Operating System**",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [],
+  "type": "module",
+  "private": "true",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "vitest": "^5.0.0"
+  }
+}
