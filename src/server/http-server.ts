@@ -1,17 +1,19 @@
-﻿import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
 import type { PipelineDependencies } from "../core/orchestrator/pipeline.js";
 import type { ExperienceStore, ExperienceQuery, ExperienceOutcome } from "../core/experience/record.js";
 import type { KairosMemory } from "../core/memory/kairos-memory.js";
 import { MEMORY_TYPES, type MemoryType } from "../core/memory/types.js";
 import { createKairos } from "../factory/index.js";
+import { AuthMiddleware } from "./auth.js";
 
 export interface KairosServerOptions {
   readonly dependencies: PipelineDependencies;
   readonly experienceStore: ExperienceStore;
   readonly memory: KairosMemory;
   readonly defaultMaxCycles?: number;
+  readonly apiToken?: string;
+  readonly requestsPerMinute?: number;
 }
-
 // 1 MB is plenty for a goal string plus a few options; guards against an
 // unbounded request body being buffered fully into memory.
 const MAX_BODY_BYTES = 1_000_000;
@@ -240,7 +242,7 @@ async function handleMemory(
  *   GET  /experience        ?outcome=&goalContains=&modelProvider=&sessionId=&since=&limit= -> ExperienceRecord[]
  *   GET  /experience/:id    -> ExperienceRecord | 404
  *   GET  /memory            ?query=&type=&limit= -> Memory[]
- * No framework dependency — routing and JSON body parsing are handled
+ * No framework dependency â€” routing and JSON body parsing are handled
  * directly against node:http.
  */
 
@@ -300,43 +302,53 @@ async function handleRunStream(
   }
 }
 export function createKairosServer(options: KairosServerOptions): Server {
+  const auth = new AuthMiddleware({
+    ...(options.apiToken !== undefined ? { apiToken: options.apiToken } : {}),
+    ...(options.requestsPerMinute !== undefined ? { rateLimit: { requestsPerMinute: options.requestsPerMinute } } : {}),
+  });
+
   return createServer((req, res) => {
     void (async () => {
+      const requestId = crypto.randomUUID();
+      const startedAt = Date.now();
+
       try {
         if (req.method === undefined || req.url === undefined) {
+          res.setHeader("X-Request-Id", requestId);
           sendJson(res, 400, { error: "Malformed request." });
+          return;
+        }
+
+        const ip = req.socket.remoteAddress ?? "unknown";
+        const authResult = auth.check(ip, req.headers["authorization"]);
+        res.setHeader("X-Request-Id", requestId);
+
+        if (!authResult.allowed) {
+          sendJson(res, authResult.status ?? 401, { error: authResult.reason });
+          console.log(JSON.stringify({ requestId, method: req.method, path: req.url, status: authResult.status ?? 401, durationMs: Date.now() - startedAt, timestamp: new Date().toISOString() }));
           return;
         }
 
         const url = new URL(req.url, "http://localhost");
 
-        if (req.method === "POST" && url.pathname === "/stream") { await handleRunStream(req, res, options); return; }
-        if (req.method === "POST" && url.pathname === "/run") {
-          await handleRun(req, res, options);
-          return;
+        if (req.method === "POST" && url.pathname === "/stream") { await handleRunStream(req, res, options); }
+        else if (req.method === "POST" && url.pathname === "/run") { await handleRun(req, res, options); }
+        else if (req.method === "GET" && url.pathname === "/experience") { await handleListExperience(url, res, options); }
+        else {
+          const experienceIdMatch = /^\/experience\/([^/]+)$/.exec(url.pathname);
+          if (req.method === "GET" && experienceIdMatch !== null && experienceIdMatch[1] !== undefined) {
+            await handleGetExperienceById(decodeURIComponent(experienceIdMatch[1]), res, options);
+          } else if (req.method === "GET" && url.pathname === "/memory") {
+            await handleMemory(url, res, options);
+          } else {
+            sendJson(res, 404, { error: `Not found: ${req.method} ${url.pathname}` });
+          }
         }
 
-        if (req.method === "GET" && url.pathname === "/experience") {
-          await handleListExperience(url, res, options);
-          return;
-        }
-
-        const experienceIdMatch = /^\/experience\/([^/]+)$/.exec(url.pathname);
-        if (req.method === "GET" && experienceIdMatch !== null && experienceIdMatch[1] !== undefined) {
-          await handleGetExperienceById(decodeURIComponent(experienceIdMatch[1]), res, options);
-          return;
-        }
-
-        if (req.method === "GET" && url.pathname === "/memory") {
-          await handleMemory(url, res, options);
-          return;
-        }
-
-        sendJson(res, 404, { error: `Not found: ${req.method} ${url.pathname}` });
+        console.log(JSON.stringify({ requestId, method: req.method, path: req.url, status: res.statusCode, durationMs: Date.now() - startedAt, timestamp: new Date().toISOString() }));
       } catch (error) {
-        sendJson(res, 500, {
-          error: "Internal server error: " + (error instanceof Error ? error.message : String(error)),
-        });
+        sendJson(res, 500, { error: "Internal server error: " + (error instanceof Error ? error.message : String(error)) });
+        console.log(JSON.stringify({ requestId, method: req.method ?? "?", path: req.url ?? "?", status: 500, durationMs: Date.now() - startedAt, timestamp: new Date().toISOString() }));
       }
     })();
   });
