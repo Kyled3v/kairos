@@ -1,0 +1,81 @@
+node.exe : npm notice run @kyledev/kairos@0.1.0 test
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\rtmatsie\AppData\Roami ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm notice run ...iros@0.1.0 test:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice run vitest run
+
+[1m[30m[46m RUN [49m[39m[22m [36mv5.0.0 [39m[90mE:/Projects/kairos[39m
+
+ [32mÔ£ô[39m tests/intelligence/anthropic-provider.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 59[2mms[22m[39m
+ [32mÔ£ô[39m tests/intelligence/ollama-provider.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 59[2mms[22m[39m
+ [32mÔ£ô[39m tests/experience/experience-store.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 67[2mms[22m[39m
+ [32mÔ£ô[39m tests/memory/file-store.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 87[2mms[22m[39m
+ [32mÔ£ô[39m tests/orchestrator/multi-cycle.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32mÔ£ô[39m tests/experience/session-filter.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 30[2mms[22m[39m
+ [32mÔ£ô[39m tests/orchestrator/session-orchestrator.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32mÔ£ô[39m tests/tools/built-in.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32mÔ£ô[39m tests/cognition/engine/basic-engine.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/server/http-server.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 339[2mms[22m[39m
+ [32mÔ£ô[39m tests/factory/kairos-factory.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32mÔ£ô[39m tests/factory/pipeline-dependencies.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32mÔ£ô[39m tests/agents/agent.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32mÔ£ô[39m tests/agents/identity.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32mÔ£ô[39m tests/cognition/engine/execution.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32mÔ£ô[39m tests/runtime/basic-runtime.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32mÔ£ô[39m tests/intelligence/model-runtime.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32mÔ£ô[39m tests/agents/message-bus.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32mÔ£ô[39m tests/memory/kairos-memory.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m tests/cognition/engine/reasoning.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m tests/observation/basic-engine.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/experience/recorder.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m tests/observation/tool-aware-engine.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m tests/memory/experience-bridge.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32mÔ£ô[39m tests/orchestrator/orchestrator.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/tools/collector.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/memory/memory-store.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/agents/scoped-memory-store.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/tools/gateway.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m tests/tools/registry.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/reasoning/basic-engine.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/planning/basic-engine.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/orchestrator/failure-handling.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/intelligence/model-registry.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m tests/orchestrator/progress-tracker.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/action/basic-executor.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32mÔ£ô[39m tests/tools/tool-action-integration.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m tests/cognition/state-machine.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/experience/event-log.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m tests/decision/basic-engine.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m tests/intelligence/model-router-errors.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/intelligence/model-decision.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/security/gateway.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/intelligence/model-selector.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/intelligence/stream-utils.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32mÔ£ô[39m tests/intelligence/mock-provider.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32mÔ£ô[39m tests/evaluation/basic-engine.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/orchestrator/goal-decomposer.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/tools/policy.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m tests/tools/executor.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32mÔ£ô[39m tests/orchestrator/pipeline.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m tests/intelligence/model-evaluation.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m tests/intelligence/model-planning.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m tests/reflection/basic-engine.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/cli/args.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m tests/security/authorization.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32mÔ£ô[39m tests/intelligence/model-reflection.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32mÔ£ô[39m tests/intelligence/model-reasoning.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32mÔ£ô[39m tests/model-router.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [2m[90mÔåô[39m[22m tests/intelligence/real-provider-integration.test.ts [2m([22m[2m1 test[22m[2m | [22m[33m1 skipped[39m[2m)[22m
+
+[2m Test Files [22m [1m[32m59 passed[39m[22m[2m | [22m[33m1 skipped[39m[90m (60)[39m
+[2m      Tests [22m [1m[32m173 passed[39m[22m[2m | [22m[33m1 skipped[39m[90m (174)[39m
+[2m   Start at [22m 16:37:01
+[2m   Duration [22m 5.49s[2m (transform 59%, import 23%, tests 12%, worker 7%)[22m
+
+[2m  Transform [22m [33mtransforming modules took 5.22s[39m[2m ┬À 59% of tracked time, re-done on every run[22m
+[2m            [22m [2mpersist transforms across runs with [22m[33mfsModuleCache: true[39m
+[2m            [22m [2mlearn more: https://vitest.dev/guide/improving-performance#caching-between-reruns[22m
+

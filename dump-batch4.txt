@@ -1,0 +1,899 @@
+===== FILE: src/core/experience/file/file-experience-store.ts =====
+import { readFile, writeFile, mkdir, appendFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { dirname } from "node:path";
+import type {
+  ExperienceRecord,
+  ExperienceQuery,
+  ExperienceStore,
+  ToolCallRecord,
+  ErrorRecord,
+  ExperienceFeedback,
+  ExperienceOutcome,
+} from "../record.js";
+
+export interface FileExperienceStoreOptions {
+  readonly filePath: string;
+}
+
+function getString(obj: Record<string, unknown>, key: string): string {
+  const v = obj[key];
+  if (typeof v !== "string") throw new Error("Expected string at " + key + ", got " + typeof v);
+  return v;
+}
+
+function getNumber(obj: Record<string, unknown>, key: string): number {
+  const v = obj[key];
+  if (typeof v !== "number") throw new Error("Expected number at " + key + ", got " + typeof v);
+  return v;
+}
+
+function getDate(obj: Record<string, unknown>, key: string): Date {
+  const v = obj[key];
+  if (typeof v !== "string" && !(v instanceof Date)) {
+    throw new Error("Expected date string at " + key + ", got " + typeof v);
+  }
+  return new Date(v as string);
+}
+
+function getBoolean(obj: Record<string, unknown>, key: string): boolean {
+  const v = obj[key];
+  if (typeof v !== "boolean") throw new Error("Expected boolean at " + key + ", got " + typeof v);
+  return v;
+}
+
+function deserializeToolCall(tc: Record<string, unknown>): ToolCallRecord {
+  const base: Record<string, unknown> = {
+    toolId: getString(tc, "toolId"),
+    requestId: getString(tc, "requestId"),
+    parameters: (tc["parameters"] as Readonly<Record<string, unknown>>) ?? {},
+    status: getString(tc, "status") as ToolCallRecord["status"],
+    executedAt: getDate(tc, "executedAt"),
+    durationMs: getNumber(tc, "durationMs"),
+  };
+  if (tc["result"] !== undefined) base["result"] = tc["result"];
+  if (tc["error"] !== undefined) base["error"] = tc["error"] as string;
+  return base as unknown as ToolCallRecord;
+}
+
+function deserializeError(e: Record<string, unknown>): ErrorRecord {
+  return {
+    cycle: getNumber(e, "cycle"),
+    stage: getString(e, "stage"),
+    message: getString(e, "message"),
+    recoverable: getBoolean(e, "recoverable"),
+    timestamp: getDate(e, "timestamp"),
+  };
+}
+
+function deserializeFeedback(f: Record<string, unknown>): ExperienceFeedback {
+  const base: Record<string, unknown> = {
+    rating: getNumber(f, "rating") as ExperienceFeedback["rating"],
+    correctedAt: getDate(f, "correctedAt"),
+  };
+  if (f["comment"] !== undefined) base["comment"] = f["comment"] as string;
+  return base as unknown as ExperienceFeedback;
+}
+
+function deserializeRecord(raw: Record<string, unknown>): ExperienceRecord {
+  const toolCallsRaw = (raw["toolCalls"] as Array<Record<string, unknown>>) ?? [];
+  const errorsRaw = (raw["errors"] as Array<Record<string, unknown>>) ?? [];
+
+  const record: Record<string, unknown> = {
+    id: getString(raw, "id"),
+    sessionId: getString(raw, "sessionId"),
+    goal: getString(raw, "goal"),
+    totalCycles: getNumber(raw, "totalCycles"),
+    outcome: getString(raw, "outcome") as ExperienceOutcome,
+    toolCalls: toolCallsRaw.map(deserializeToolCall),
+    errors: errorsRaw.map(deserializeError),
+    startedAt: getDate(raw, "startedAt"),
+    completedAt: getDate(raw, "completedAt"),
+    durationMs: getNumber(raw, "durationMs"),
+    metadata: (raw["metadata"] as Readonly<Record<string, unknown>>) ?? {},
+  };
+
+  if (raw["finalReasoning"] !== undefined) record["finalReasoning"] = raw["finalReasoning"];
+  if (raw["finalPlan"] !== undefined) record["finalPlan"] = raw["finalPlan"];
+  if (raw["finalDecision"] !== undefined) record["finalDecision"] = raw["finalDecision"];
+  if (raw["finalObservation"] !== undefined) record["finalObservation"] = raw["finalObservation"];
+  if (raw["finalEvaluation"] !== undefined) record["finalEvaluation"] = raw["finalEvaluation"];
+  if (raw["finalReflection"] !== undefined) record["finalReflection"] = raw["finalReflection"];
+  if (raw["feedback"] !== undefined) record["feedback"] = deserializeFeedback(raw["feedback"] as Record<string, unknown>);
+  if (raw["modelProvider"] !== undefined) record["modelProvider"] = raw["modelProvider"] as string;
+  if (raw["modelId"] !== undefined) record["modelId"] = raw["modelId"] as string;
+
+  return record as unknown as ExperienceRecord;
+}
+
+export class FileExperienceStore implements ExperienceStore {
+  private readonly records = new Map<string, ExperienceRecord>();
+  private readonly filePath: string;
+
+  constructor(options: FileExperienceStoreOptions) {
+    this.filePath = options.filePath;
+  }
+
+  async load(): Promise<void> {
+    if (!existsSync(this.filePath)) return;
+    try {
+      const raw = await readFile(this.filePath, "utf-8");
+      const lines = raw.split("\n").filter((l) => l.trim() !== "");
+      this.records.clear();
+      for (const line of lines) {
+        const record = this.parseLine(line);
+        if (record !== undefined) this.records.set(record.id, record);
+      }
+    } catch (error) {
+      throw new Error(
+        "Failed to load experience store from " + this.filePath + ": " +
+          (error instanceof Error ? error.message : String(error)),
+      );
+    }
+  }
+
+  async save(record: ExperienceRecord): Promise<ExperienceRecord> {
+    this.records.set(record.id, record);
+    const dir = dirname(this.filePath);
+    await mkdir(dir, { recursive: true });
+    await appendFile(this.filePath, JSON.stringify(record) + "\n", "utf-8");
+    return record;
+  }
+
+  async get(id: string): Promise<ExperienceRecord | undefined> {
+    return this.records.get(id);
+  }
+
+  async query(filter: ExperienceQuery): Promise<readonly ExperienceRecord[]> {
+    let results = [...this.records.values()];
+    if (filter.outcome !== undefined) {
+      results = results.filter((r) => r.outcome === filter.outcome);
+    }
+    if (filter.goalContains !== undefined) {
+      const needle = filter.goalContains.toLowerCase();
+      results = results.filter((r) => r.goal.toLowerCase().includes(needle));
+    }
+    if (filter.modelProvider !== undefined) {
+      results = results.filter((r) => r.modelProvider === filter.modelProvider);
+    }
+    if (filter.since !== undefined) {
+      const since = filter.since;
+      results = results.filter((r) => r.startedAt >= since);
+    }
+    results.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+    return filter.limit !== undefined ? results.slice(0, filter.limit) : results;
+  }
+
+  async count(): Promise<number> {
+    return this.records.size;
+  }
+
+  async clear(): Promise<void> {
+    this.records.clear();
+    if (existsSync(this.filePath)) await writeFile(this.filePath, "", "utf-8");
+  }
+
+  async exportJsonl(): Promise<string> {
+    return [...this.records.values()].map((r) => JSON.stringify(r)).join("\n");
+  }
+
+  private parseLine(line: string): ExperienceRecord | undefined {
+    try {
+      const raw = JSON.parse(line) as Record<string, unknown>;
+      return deserializeRecord(raw);
+    } catch {
+      return undefined;
+    }
+  }
+}
+
+===== FILE: src/core/experience/in-memory-experience-store.ts =====
+import type { ExperienceRecord, ExperienceQuery, ExperienceStore } from "./record.js";
+
+export class InMemoryExperienceStore implements ExperienceStore {
+  private readonly records = new Map<string, ExperienceRecord>();
+
+  async save(record: ExperienceRecord): Promise<ExperienceRecord> {
+    this.records.set(record.id, record);
+    return record;
+  }
+
+  async get(id: string): Promise<ExperienceRecord | undefined> {
+    return this.records.get(id);
+  }
+
+  async query(filter: ExperienceQuery): Promise<readonly ExperienceRecord[]> {
+    let results = [...this.records.values()];
+    if (filter.outcome !== undefined) {
+      results = results.filter((r) => r.outcome === filter.outcome);
+    }
+    if (filter.goalContains !== undefined) {
+      const needle = filter.goalContains.toLowerCase();
+      results = results.filter((r) => r.goal.toLowerCase().includes(needle));
+    }
+    if (filter.modelProvider !== undefined) {
+      results = results.filter((r) => r.modelProvider === filter.modelProvider);
+    }
+    if (filter.since !== undefined) {
+      const since = filter.since;
+      results = results.filter((r) => r.startedAt >= since);
+    }
+    results.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+    return filter.limit !== undefined ? results.slice(0, filter.limit) : results;
+  }
+
+  async count(): Promise<number> {
+    return this.records.size;
+  }
+
+  async clear(): Promise<void> {
+    this.records.clear();
+  }
+}
+
+
+===== FILE: src/core/memory/file/file-store.ts =====
+import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { dirname } from "node:path";
+import type { Memory, MemoryQuery, MemoryType, PersistentMemoryStore } from "../types.js";
+
+interface SerializedMemory {
+  readonly id: string;
+  readonly type: MemoryType;
+  readonly content: string;
+  readonly importance: number;
+  readonly createdAt: string;
+  readonly lastAccessedAt?: string;
+  readonly metadata: Readonly<Record<string, unknown>>;
+}
+
+interface StoreFile {
+  readonly version: number;
+  readonly memories: readonly SerializedMemory[];
+}
+
+const CURRENT_VERSION = 1;
+
+function serialize(memory: Memory): SerializedMemory {
+  const base: SerializedMemory = {
+    id: memory.id,
+    type: memory.type,
+    content: memory.content,
+    importance: memory.importance,
+    createdAt: memory.createdAt.toISOString(),
+    metadata: memory.metadata,
+  };
+  return memory.lastAccessedAt !== undefined
+    ? { ...base, lastAccessedAt: memory.lastAccessedAt.toISOString() }
+    : base;
+}
+
+function deserialize(s: SerializedMemory): Memory {
+  const base: Memory = {
+    id: s.id,
+    type: s.type,
+    content: s.content,
+    importance: s.importance,
+    createdAt: new Date(s.createdAt),
+    metadata: s.metadata,
+  };
+  return s.lastAccessedAt !== undefined
+    ? { ...base, lastAccessedAt: new Date(s.lastAccessedAt) }
+    : base;
+}
+
+export interface FileMemoryStoreOptions {
+  readonly filePath: string;
+  readonly writeDebounceMs?: number;
+}
+
+export class FileMemoryStore implements PersistentMemoryStore {
+  private readonly memories = new Map<string, Memory>();
+  private readonly filePath: string;
+  private readonly writeDebounceMs: number;
+  private writeTimer: ReturnType<typeof setTimeout> | undefined;
+
+  constructor(options: FileMemoryStoreOptions) {
+    this.filePath = options.filePath;
+    this.writeDebounceMs = options.writeDebounceMs ?? 500;
+  }
+
+  async load(): Promise<void> {
+    if (!existsSync(this.filePath)) return;
+    try {
+      const raw = await readFile(this.filePath, "utf-8");
+      const parsed = JSON.parse(raw) as StoreFile;
+      if (parsed.version !== CURRENT_VERSION) {
+        throw new Error(`Unsupported memory store version: ${parsed.version}`);
+      }
+      this.memories.clear();
+      for (const s of parsed.memories) {
+        const memory = deserialize(s);
+        this.memories.set(memory.id, memory);
+      }
+    } catch (error) {
+      throw new Error(
+        `Failed to load memory store from ${this.filePath}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  async flush(): Promise<void> {
+    if (this.writeTimer !== undefined) {
+      clearTimeout(this.writeTimer);
+      this.writeTimer = undefined;
+    }
+    await this.writeToDisk();
+  }
+
+  async count(): Promise<number> {
+    return this.memories.size;
+  }
+
+  async store(memory: Memory): Promise<Memory> {
+    this.memories.set(memory.id, memory);
+    this.scheduleWrite();
+    return memory;
+  }
+
+  async retrieve(query: MemoryQuery): Promise<readonly Memory[]> {
+    const normalizedQuery = query.query.trim().toLowerCase();
+    const matches = [...this.memories.values()].filter((memory) => {
+      const matchesType = query.type === undefined || memory.type === query.type;
+      const matchesContent =
+        normalizedQuery.length === 0 ||
+        memory.content.toLowerCase().includes(normalizedQuery);
+      return matchesType && matchesContent;
+    });
+    const sorted = matches.sort((a, b) => b.importance - a.importance);
+    return query.limit === undefined ? sorted : sorted.slice(0, query.limit);
+  }
+
+  async get(id: string): Promise<Memory | undefined> {
+    return this.memories.get(id);
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const deleted = this.memories.delete(id);
+    if (deleted) this.scheduleWrite();
+    return deleted;
+  }
+
+  async clear(): Promise<void> {
+    this.memories.clear();
+    this.scheduleWrite();
+  }
+
+  private scheduleWrite(): void {
+    if (this.writeTimer !== undefined) clearTimeout(this.writeTimer);
+    this.writeTimer = setTimeout(() => {
+      void this.writeToDisk();
+      this.writeTimer = undefined;
+    }, this.writeDebounceMs);
+  }
+
+  private async writeToDisk(): Promise<void> {
+    const dir = dirname(this.filePath);
+    await mkdir(dir, { recursive: true });
+    const file: StoreFile = {
+      version: CURRENT_VERSION,
+      memories: [...this.memories.values()].map(serialize),
+    };
+    const json = JSON.stringify(file, null, 2);
+    const tmp = `${this.filePath}.tmp`;
+    await writeFile(tmp, json, "utf-8");
+    await writeFile(this.filePath, json, "utf-8");
+  }
+}
+
+
+===== FILE: src/core/memory/in-memory-store.ts =====
+import type {
+  Memory,
+  MemoryQuery,
+  MemoryStore,
+} from "./types.js";
+
+export class InMemoryMemoryStore implements MemoryStore {
+  private readonly memories = new Map<string, Memory>();
+
+  async store(memory: Memory): Promise<Memory> {
+    this.memories.set(memory.id, memory);
+
+    return memory;
+  }
+
+  async retrieve(
+    query: MemoryQuery,
+  ): Promise<readonly Memory[]> {
+    const normalizedQuery = query.query.trim().toLowerCase();
+
+    const matches = [...this.memories.values()].filter(
+      (memory) => {
+        const matchesType =
+          query.type === undefined ||
+          memory.type === query.type;
+
+        const matchesContent =
+          normalizedQuery.length === 0 ||
+          memory.content.toLowerCase().includes(normalizedQuery);
+
+        return matchesType && matchesContent;
+      },
+    );
+
+    const sorted = matches.sort(
+      (a, b) => b.importance - a.importance,
+    );
+
+    return query.limit === undefined
+      ? sorted
+      : sorted.slice(0, query.limit);
+  }
+
+  async get(id: string): Promise<Memory | undefined> {
+    return this.memories.get(id);
+  }
+
+  async delete(id: string): Promise<boolean> {
+    return this.memories.delete(id);
+  }
+
+  async clear(): Promise<void> {
+    this.memories.clear();
+  }
+}
+
+
+===== FILE: src/core/memory/kairos-memory.ts =====
+import { EpisodicMemory } from "./episodic/memory.js";
+import { ProceduralMemory } from "./procedural/memory.js";
+import { SemanticMemory } from "./semantic/memory.js";
+import { WorkingMemory } from "./working/memory.js";
+import type {
+  Memory,
+  MemoryQuery,
+  MemoryStore,
+} from "./types.js";
+
+export class KairosMemory {
+  readonly working: WorkingMemory;
+  readonly episodic: EpisodicMemory;
+  readonly semantic: SemanticMemory;
+  readonly procedural: ProceduralMemory;
+
+  constructor(
+    private readonly store: MemoryStore,
+  ) {
+    this.working = new WorkingMemory(store);
+    this.episodic = new EpisodicMemory(store);
+    this.semantic = new SemanticMemory(store);
+    this.procedural = new ProceduralMemory(store);
+  }
+
+  async recall(
+    query: MemoryQuery,
+  ): Promise<readonly Memory[]> {
+    return this.store.retrieve(query);
+  }
+
+  async clear(): Promise<void> {
+    await this.store.clear();
+  }
+}
+
+
+===== FILE: src/core/memory/types.ts =====
+export const MEMORY_TYPES = [
+  "working",
+  "episodic",
+  "semantic",
+  "procedural",
+  "autobiographical",
+] as const;
+
+export type MemoryType = (typeof MEMORY_TYPES)[number];
+
+export interface Memory {
+  readonly id: string;
+  readonly type: MemoryType;
+  readonly content: string;
+  readonly importance: number;
+  readonly createdAt: Date;
+  readonly lastAccessedAt?: Date;
+  readonly metadata: Readonly<Record<string, unknown>>;
+}
+
+export interface MemoryQuery {
+  readonly query: string;
+  readonly type?: MemoryType;
+  readonly limit?: number;
+}
+
+export interface MemoryStore {
+  store(memory: Memory): Promise<Memory>;
+  retrieve(query: MemoryQuery): Promise<readonly Memory[]>;
+  get(id: string): Promise<Memory | undefined>;
+  delete(id: string): Promise<boolean>;
+  clear(): Promise<void>;
+}
+
+export interface PersistentMemoryStore extends MemoryStore {
+  flush(): Promise<void>;
+  load(): Promise<void>;
+  count(): Promise<number>;
+}
+
+
+===== FILE: tests/experience/experience-store.test.ts =====
+import { describe, expect, it, afterEach } from "vitest";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { FileExperienceStore } from "../../src/core/experience/file/file-experience-store.js";
+import { InMemoryExperienceStore } from "../../src/core/experience/in-memory-experience-store.js";
+import type { ExperienceRecord } from "../../src/core/experience/record.js";
+
+function makeRecord(overrides: Partial<ExperienceRecord> = {}): ExperienceRecord {
+  const now = new Date();
+  return { id: crypto.randomUUID(), sessionId: "s1", goal: "Test goal", totalCycles: 1, outcome: "success", toolCalls: [], errors: [], startedAt: now, completedAt: now, durationMs: 10, metadata: {}, ...overrides };
+}
+
+describe("InMemoryExperienceStore", () => {
+  it("saves and retrieves", async () => {
+    const store = new InMemoryExperienceStore();
+    const r = makeRecord();
+    await store.save(r);
+    expect((await store.get(r.id))?.id).toBe(r.id);
+  });
+  it("queries by outcome", async () => {
+    const store = new InMemoryExperienceStore();
+    await store.save(makeRecord({ id: "r1", outcome: "success" }));
+    await store.save(makeRecord({ id: "r2", outcome: "failure" }));
+    const s = await store.query({ outcome: "success" });
+    expect(s).toHaveLength(1);
+    expect(s[0]?.id).toBe("r1");
+  });
+  it("queries by goal", async () => {
+    const store = new InMemoryExperienceStore();
+    await store.save(makeRecord({ id: "r1", goal: "Build Nexus auth" }));
+    await store.save(makeRecord({ id: "r2", goal: "Fix a bug" }));
+    const r = await store.query({ goalContains: "nexus" });
+    expect(r).toHaveLength(1);
+  });
+  it("counts and clears", async () => {
+    const store = new InMemoryExperienceStore();
+    await store.save(makeRecord());
+    await store.save(makeRecord());
+    expect(await store.count()).toBe(2);
+    await store.clear();
+    expect(await store.count()).toBe(0);
+  });
+});
+
+describe("FileExperienceStore", () => {
+  const paths: string[] = [];
+  afterEach(async () => {
+    for (const p of paths) { if (existsSync(p)) await rm(p); }
+    paths.length = 0;
+  });
+  function tmpPath() { return join(tmpdir(), `kairos-exp-${crypto.randomUUID()}.jsonl`); }
+
+  it("saves and reloads", async () => {
+    const path = tmpPath(); paths.push(path);
+    const store = new FileExperienceStore({ filePath: path });
+    await store.load();
+    const r = makeRecord({ goal: "Persist this" });
+    await store.save(r);
+    const store2 = new FileExperienceStore({ filePath: path });
+    await store2.load();
+    expect((await store2.get(r.id))?.goal).toBe("Persist this");
+  });
+
+  it("exports as JSONL", async () => {
+    const path = tmpPath(); paths.push(path);
+    const store = new FileExperienceStore({ filePath: path });
+    await store.load();
+    await store.save(makeRecord({ id: "r1" }));
+    await store.save(makeRecord({ id: "r2" }));
+    const jsonl = await store.exportJsonl();
+    const lines = jsonl.split("\n").filter((l) => l.trim() !== "");
+    expect(lines).toHaveLength(2);
+  });
+
+  it("starts empty when file missing", async () => {
+    const path = tmpPath(); paths.push(path);
+    const store = new FileExperienceStore({ filePath: path });
+    await store.load();
+    expect(await store.count()).toBe(0);
+  });
+});
+
+
+===== FILE: tests/memory/file-store.test.ts =====
+import { describe, expect, it, afterEach } from "vitest";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { FileMemoryStore } from "../../src/core/memory/file/file-store.js";
+
+function tmpPath(): string {
+  return join(tmpdir(), `kairos-mem-${crypto.randomUUID()}.json`);
+}
+
+describe("FileMemoryStore", () => {
+  const paths: string[] = [];
+  afterEach(async () => {
+    for (const p of paths) {
+      if (existsSync(p)) await rm(p);
+      if (existsSync(`${p}.tmp`)) await rm(`${p}.tmp`);
+    }
+    paths.length = 0;
+  });
+
+  it("stores and retrieves after flush", async () => {
+    const path = tmpPath(); paths.push(path);
+    const store = new FileMemoryStore({ filePath: path, writeDebounceMs: 0 });
+    await store.load();
+    await store.store({ id: "m1", type: "semantic", content: "KAIROS platform.", importance: 0.9, createdAt: new Date(), metadata: {} });
+    await store.flush();
+    const store2 = new FileMemoryStore({ filePath: path, writeDebounceMs: 0 });
+    await store2.load();
+    const results = await store2.retrieve({ query: "KAIROS" });
+    expect(results).toHaveLength(1);
+    expect(results[0]?.content).toContain("KAIROS");
+  });
+
+  it("filters by type after reload", async () => {
+    const path = tmpPath(); paths.push(path);
+    const store = new FileMemoryStore({ filePath: path, writeDebounceMs: 0 });
+    await store.load();
+    await store.store({ id: "m1", type: "semantic", content: "Semantic.", importance: 0.9, createdAt: new Date(), metadata: {} });
+    await store.store({ id: "m2", type: "episodic", content: "Episodic.", importance: 0.8, createdAt: new Date(), metadata: {} });
+    await store.flush();
+    const store2 = new FileMemoryStore({ filePath: path, writeDebounceMs: 0 });
+    await store2.load();
+    const semantic = await store2.retrieve({ query: "", type: "semantic" });
+    expect(semantic).toHaveLength(1);
+    expect(semantic[0]?.type).toBe("semantic");
+  });
+
+  it("deletes and persists deletion", async () => {
+    const path = tmpPath(); paths.push(path);
+    const store = new FileMemoryStore({ filePath: path, writeDebounceMs: 0 });
+    await store.load();
+    await store.store({ id: "m1", type: "working", content: "Temp.", importance: 0.5, createdAt: new Date(), metadata: {} });
+    await store.flush();
+    await store.delete("m1");
+    await store.flush();
+    const store2 = new FileMemoryStore({ filePath: path, writeDebounceMs: 0 });
+    await store2.load();
+    expect(await store2.get("m1")).toBeUndefined();
+    expect(await store2.count()).toBe(0);
+  });
+
+  it("starts empty when file does not exist", async () => {
+    const path = tmpPath(); paths.push(path);
+    const store = new FileMemoryStore({ filePath: path, writeDebounceMs: 0 });
+    await store.load();
+    expect(await store.count()).toBe(0);
+  });
+
+  it("clears and persists", async () => {
+    const path = tmpPath(); paths.push(path);
+    const store = new FileMemoryStore({ filePath: path, writeDebounceMs: 0 });
+    await store.load();
+    await store.store({ id: "m1", type: "semantic", content: "X.", importance: 0.5, createdAt: new Date(), metadata: {} });
+    await store.flush();
+    await store.clear();
+    await store.flush();
+    const store2 = new FileMemoryStore({ filePath: path, writeDebounceMs: 0 });
+    await store2.load();
+    expect(await store2.count()).toBe(0);
+  });
+});
+
+
+===== FILE: tests/memory/kairos-memory.test.ts =====
+import { describe, expect, it } from "vitest";
+import { InMemoryMemoryStore } from "../../src/core/memory/in-memory-store.js";
+import { KairosMemory } from "../../src/core/memory/kairos-memory.js";
+
+describe("KairosMemory", () => {
+  it("supports specialized memory systems", async () => {
+    const store = new InMemoryMemoryStore();
+    const memory = new KairosMemory(store);
+
+    await memory.working.remember(
+      "Current Nexus task",
+    );
+
+    await memory.episodic.rememberExperience(
+      "Previously completed Nexus analysis",
+    );
+
+    await memory.semantic.rememberFact(
+      "Nexus supports multiple businesses",
+    );
+
+    await memory.procedural.rememberProcedure(
+      "Review requirements before planning",
+    );
+
+    expect(
+      await memory.working.recall("Nexus"),
+    ).toHaveLength(1);
+
+    expect(
+      await memory.episodic.recall("Nexus"),
+    ).toHaveLength(1);
+
+    expect(
+      await memory.semantic.recall("Nexus"),
+    ).toHaveLength(1);
+
+    expect(
+      await memory.procedural.recall("requirements"),
+    ).toHaveLength(1);
+  });
+});
+
+
+===== FILE: tests/memory/memory-store.test.ts =====
+import { describe, expect, it } from "vitest";
+import { InMemoryMemoryStore } from "../../src/core/memory/in-memory-store.js";
+
+describe("InMemoryMemoryStore", () => {
+  it("stores and retrieves memories", async () => {
+    const store = new InMemoryMemoryStore();
+
+    await store.store({
+      id: "memory-1",
+      type: "semantic",
+      content: "Nexus is a business operating system.",
+      importance: 0.9,
+      createdAt: new Date(),
+      metadata: {},
+    });
+
+    const results = await store.retrieve({
+      query: "Nexus",
+    });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]?.content).toContain("Nexus");
+  });
+
+  it("filters by memory type", async () => {
+    const store = new InMemoryMemoryStore();
+
+    await store.store({
+      id: "memory-1",
+      type: "semantic",
+      content: "Nexus semantic fact",
+      importance: 0.9,
+      createdAt: new Date(),
+      metadata: {},
+    });
+
+    await store.store({
+      id: "memory-2",
+      type: "episodic",
+      content: "Nexus previous experience",
+      importance: 0.8,
+      createdAt: new Date(),
+      metadata: {},
+    });
+
+    const results = await store.retrieve({
+      query: "Nexus",
+      type: "semantic",
+    });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]?.type).toBe("semantic");
+  });
+
+  it("respects result limits", async () => {
+    const store = new InMemoryMemoryStore();
+
+    for (let index = 1; index <= 5; index += 1) {
+      await store.store({
+        id: `memory-${index}`,
+        type: "working",
+        content: `Memory ${index}`,
+        importance: index / 10,
+        createdAt: new Date(),
+        metadata: {},
+      });
+    }
+
+    const results = await store.retrieve({
+      query: "Memory",
+      limit: 2,
+    });
+
+    expect(results).toHaveLength(2);
+    expect(results[0]?.importance).toBeGreaterThan(
+      results[1]?.importance ?? 0,
+    );
+  });
+
+  it("deletes memories", async () => {
+    const store = new InMemoryMemoryStore();
+
+    await store.store({
+      id: "memory-1",
+      type: "working",
+      content: "Temporary memory",
+      importance: 0.5,
+      createdAt: new Date(),
+      metadata: {},
+    });
+
+    expect(await store.delete("memory-1")).toBe(true);
+    expect(await store.get("memory-1")).toBeUndefined();
+  });
+});
+
+
+===== FILE: tests/memory/experience-bridge.test.ts =====
+import { describe, expect, it } from "vitest";
+import { InMemoryMemoryStore } from "../../src/core/memory/in-memory-store.js";
+import { rememberExecution } from "../../src/core/memory/experience-bridge.js";
+import type { KairosExecution } from "../../src/core/runtime/types.js";
+
+describe("rememberExecution", () => {
+  it("converts an execution into episodic and procedural memory", async () => {
+    const store = new InMemoryMemoryStore();
+
+    const execution: KairosExecution = {
+      id: "execution-1",
+      goal: "Understand Nexus requirements",
+      currentState: "COMPLETE",
+      cycle: 1,
+      reasoning: {
+        conclusion: "The requirements should be analyzed systematically.",
+        confidence: 0.8,
+        reasoningSteps: ["Analyze requirements"],
+      },
+      plan: {
+        goal: "Understand Nexus requirements",
+        rationale: "Systematic analysis is appropriate.",
+        steps: [
+          {
+            id: "step-1",
+            description: "Review requirements",
+            order: 1,
+          },
+        ],
+      },
+      completed: true,
+      terminationReason: "Objective completed.",
+      createdAt: new Date(),
+      completedAt: new Date(),
+    };
+
+    await rememberExecution(execution, store);
+
+    const episodic = await store.retrieve({
+      query: "Nexus",
+      type: "episodic",
+    });
+
+    const procedural = await store.retrieve({
+      query: "Review requirements",
+      type: "procedural",
+    });
+
+    expect(episodic).toHaveLength(1);
+    expect(procedural).toHaveLength(1);
+  });
+});
+
+

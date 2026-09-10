@@ -7,7 +7,9 @@ import { OrchestrationError } from "./errors.js";
 import {
   executePipeline,
   type PipelineDependencies,
+  type PipelineContext,
 } from "./pipeline.js";
+import type { Reflection } from "../reflection/types.js";
 
 export class BasicKairosOrchestrator
   implements KairosOrchestrator
@@ -33,17 +35,19 @@ export class BasicKairosOrchestrator
       );
     }
 
-    let previousReflection;
+    let previousReflection: Reflection | undefined;
 
     for (let cycle = 1; cycle <= maxCycles; cycle += 1) {
       try {
+        const context: PipelineContext =
+          previousReflection !== undefined
+            ? { cycle, previousReflection }
+            : { cycle };
+
         const result = await executePipeline(
           request.goal,
           this.dependencies,
-          {
-            cycle,
-            previousReflection,
-          },
+          context,
         );
 
         previousReflection = result.reflection;
@@ -54,8 +58,7 @@ export class BasicKairosOrchestrator
             status: "completed",
             cycles: cycle,
             ...result,
-            terminationReason:
-              "Objective completed.",
+            terminationReason: "Objective completed.",
           };
         }
       } catch (error) {
@@ -66,8 +69,6 @@ export class BasicKairosOrchestrator
       }
     }
 
-    // Omit optional properties entirely rather than assigning undefined
-    // (required by exactOptionalPropertyTypes: true)
     return {
       goal: request.goal,
       status: "running",

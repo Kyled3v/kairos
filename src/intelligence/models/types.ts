@@ -18,6 +18,15 @@ export interface ModelRequest {
   readonly maxTokens?: number;
   readonly tools?: readonly ModelTool[];
   readonly responseFormat?: "text" | "json";
+  /**
+   * When true, the provider streams the response instead of waiting for
+   * the full completion. onDelta (if supplied) is called with each
+   * incremental piece of text as it arrives; the method still resolves
+   * with the full assembled ModelResponse once the stream ends.
+   */
+  readonly streaming?: boolean;
+  /** Called with each incremental text chunk while streaming. Ignored when streaming is not true. */
+  readonly onDelta?: (delta: string) => void;
 }
 
 export interface ModelTool {
@@ -37,6 +46,8 @@ export interface ModelResponse {
   };
   readonly finishReason?: string;
   readonly structuredOutput?: unknown;
+  /** True when this response was produced by consuming a stream rather than a single non-streaming call. */
+  readonly streaming?: boolean;
 }
 
 export interface ModelProvider {

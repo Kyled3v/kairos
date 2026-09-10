@@ -1,10 +1,16 @@
-﻿export interface DecisionOption {
+export interface ToolCallRequest {
+  readonly toolId: string;
+  readonly parameters: Readonly<Record<string, unknown>>;
+}
+
+export interface DecisionOption {
   readonly id: string;
   readonly description: string;
   readonly goalFit: number;
   readonly confidence: number;
   readonly risk: number;
   readonly authorized: boolean;
+  readonly toolCall?: ToolCallRequest;
 }
 
 export interface Decision {

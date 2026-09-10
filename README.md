@@ -43,14 +43,14 @@ KAIROS is composed of:
 
 ## Agent System
 
-ATLAS � Executive intelligence  
-ORION � Research and discovery  
-NOVA � Creation and synthesis  
-FORGE � Engineering  
-SAGE � Knowledge and memory  
-PULSE � Observation and monitoring  
-VECTOR � Execution  
-VANGUARD � Security and governance
+ATLAS — Executive intelligence  
+ORION — Research and discovery  
+NOVA — Creation and synthesis  
+FORGE — Engineering  
+SAGE — Knowledge and memory  
+PULSE — Observation and monitoring  
+VECTOR — Execution  
+VANGUARD — Security and governance
 
 Agent responsibilities may evolve as the architecture matures. Names do not define implementation boundaries.
 
@@ -72,3 +72,42 @@ No feature is complete until:
 KAIROS is a KyleDev Software Systems project.
 
 Third-party dependencies, models, datasets, and services must retain their respective licenses. KAIROS must not falsely claim ownership of third-party components.
+
+## SDK
+
+Import from `src/sdk.ts` (or `@kyledev/kairos/sdk` once published). Never import from internal paths directly — they are subject to change without notice.
+
+### Factories
+
+| Export | Description |
+|---|---|
+| `createKairos(config)` | Create a runtime or session orchestrator |
+| `createKairosMemory(config)` | Create a typed memory facade (file or in-memory) |
+| `createExperienceStore(config)` | Create an experience store (file or in-memory) |
+| `createPipelineDependencies(config)` | Build pipeline dependencies for basic or model mode |
+
+### Modes
+
+```ts
+// Basic (deterministic, no model)
+createKairos({ mode: "basic" })
+
+// Model-backed
+createKairos({ mode: "model", router, providerId: "anthropic", modelId: "claude-sonnet-4-6" })
+
+// Session (preferred — adds experience recording, tool collection, decomposition)
+createKairos({ mode: "session", dependencies, session: { maxCycles: 10 } })
+```
+
+### Key interfaces
+
+- `KairosOrchestrator` — single-cycle run
+- `KairosMultiCycleOrchestrator` — bounded multi-cycle run with progress tracking
+- `SessionOrchestrator` — session-scoped orchestrator with experience recording
+- `Tool` / `ToolDefinition` — implement to add a custom tool
+- `ModelProvider` — implement to add a custom model provider
+- `MemoryStore` / `ExperienceStore` — implement to add custom persistence
+
+### Public vs internal
+
+The SDK exports interfaces, factories, and concrete classes that form stable boundaries. Internal engine classes (`BasicReasoningEngine`, `BasicPlanningEngine`, `ModelReasoningEngine`, etc.) are **not** exported from the SDK — use the factories to compose them.

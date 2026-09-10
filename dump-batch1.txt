@@ -1,0 +1,231 @@
+===== FILE: src/intelligence/models/router.ts =====
+import type {
+  ModelProvider,
+  ModelRequest,
+  ModelResponse,
+} from "./types.js";
+
+export class ModelRouter {
+  private readonly providers = new Map<string, ModelProvider>();
+
+  register(provider: ModelProvider): void {
+    this.providers.set(provider.id, provider);
+  }
+
+  hasProvider(providerId: string): boolean {
+    return this.providers.has(providerId);
+  }
+
+  getProvider(providerId: string): ModelProvider | undefined {
+    return this.providers.get(providerId);
+  }
+
+  async generate(
+    providerId: string,
+    request: ModelRequest,
+  ): Promise<ModelResponse> {
+    const provider = this.providers.get(providerId);
+
+    if (!provider) {
+      throw new Error(
+        `Model provider not registered: ${providerId}`,
+      );
+    }
+
+    const response = await provider.generate(request);
+
+    if (!response.usage) {
+      return response;
+    }
+
+    return {
+      ...response,
+      usage: {
+        ...response.usage,
+        totalTokens:
+          response.usage.totalTokens ??
+          (response.usage.inputTokens ?? 0) +
+            (response.usage.outputTokens ?? 0),
+      },
+    };
+  }
+}
+
+
+===== FILE: src/intelligence/models/types.ts =====
+export interface ModelMessage {
+  readonly role: "system" | "user" | "assistant" | "tool";
+  readonly content: string;
+}
+
+export interface ModelCapabilities {
+  readonly reasoning: boolean;
+  readonly vision: boolean;
+  readonly toolUse: boolean;
+  readonly structuredOutput: boolean;
+  readonly streaming: boolean;
+}
+
+export interface ModelRequest {
+  readonly model: string;
+  readonly messages: readonly ModelMessage[];
+  readonly temperature?: number;
+  readonly maxTokens?: number;
+  readonly tools?: readonly ModelTool[];
+  readonly responseFormat?: "text" | "json";
+}
+
+export interface ModelTool {
+  readonly name: string;
+  readonly description: string;
+  readonly parameters: Readonly<Record<string, unknown>>;
+}
+
+export interface ModelResponse {
+  readonly content: string;
+  readonly model: string;
+  readonly provider: string;
+  readonly usage?: {
+    readonly inputTokens?: number;
+    readonly outputTokens?: number;
+    readonly totalTokens?: number;
+  };
+  readonly finishReason?: string;
+  readonly structuredOutput?: unknown;
+}
+
+export interface ModelProvider {
+  readonly id: string;
+  readonly name: string;
+  generate(request: ModelRequest): Promise<ModelResponse>;
+}
+
+export interface ModelDescriptor {
+  readonly id: string;
+  readonly providerId: string;
+  readonly name: string;
+  readonly version: string;
+  readonly capabilities: ModelCapabilities;
+  readonly contextWindow?: number;
+  readonly trainingCutoff?: string;
+  readonly local: boolean;
+  readonly costTier: "free" | "low" | "medium" | "high" | "unknown";
+  readonly enabled: boolean;
+}
+
+export interface ModelHealth {
+  readonly modelId: string;
+  readonly healthy: boolean;
+  readonly checkedAt: Date;
+  readonly latencyMs?: number;
+  readonly error?: string;
+}
+
+
+===== FILE: src/intelligence/models/registry/registry.ts =====
+import type {
+  ModelDescriptor,
+  ModelHealth,
+} from "../types.js";
+
+export class ModelRegistry {
+  private readonly models = new Map<string, ModelDescriptor>();
+  private readonly health = new Map<string, ModelHealth>();
+
+  register(model: ModelDescriptor): void {
+    this.models.set(model.id, model);
+  }
+
+  get(modelId: string): ModelDescriptor | undefined {
+    return this.models.get(modelId);
+  }
+
+  getAll(): readonly ModelDescriptor[] {
+    return [...this.models.values()];
+  }
+
+  getEnabled(): readonly ModelDescriptor[] {
+    return [...this.models.values()].filter(
+      (model) => model.enabled,
+    );
+  }
+
+  updateHealth(health: ModelHealth): void {
+    this.health.set(health.modelId, health);
+  }
+
+  getHealth(modelId: string): ModelHealth | undefined {
+    return this.health.get(modelId);
+  }
+}
+
+
+===== FILE: src/intelligence/models/selection/selector.ts =====
+import type {
+  ModelCapabilities,
+  ModelDescriptor,
+} from "../types.js";
+import { ModelRegistry } from "../registry/registry.js";
+
+export interface ModelSelectionRequirements {
+  readonly capabilities?: Partial<ModelCapabilities>;
+  readonly preferredProvider?: string;
+  readonly requireFree?: boolean;
+}
+
+export class ModelSelector {
+  constructor(
+    private readonly registry: ModelRegistry,
+  ) {}
+
+  select(
+    requirements: ModelSelectionRequirements = {},
+  ): ModelDescriptor {
+    const candidates = this.registry
+      .getEnabled()
+      .filter((model) => {
+        if (
+          requirements.preferredProvider &&
+          model.providerId !== requirements.preferredProvider
+        ) {
+          return false;
+        }
+
+        if (
+          requirements.requireFree &&
+          model.costTier !== "free"
+        ) {
+          return false;
+        }
+
+        if (requirements.capabilities) {
+          for (const [key, required] of Object.entries(
+            requirements.capabilities,
+          )) {
+            if (
+              required === true &&
+              !model.capabilities[
+                key as keyof ModelCapabilities
+              ]
+            ) {
+              return false;
+            }
+          }
+        }
+
+        return true;
+      });
+
+    const selected = candidates[0];
+
+    if (!selected) {
+      throw new Error(
+        "No model satisfies the requested requirements.",
+      );
+    }
+
+    return selected;
+  }
+}
+
+

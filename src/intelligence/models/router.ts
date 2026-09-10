@@ -1,11 +1,15 @@
-﻿import type {
-  ModelProvider,
-  ModelRequest,
-  ModelResponse,
-} from "./types.js";
+import type { ModelProvider, ModelRequest, ModelResponse } from "./types.js";
+import { ModelTimeoutError } from "./errors.js";
+
+export const DEFAULT_MODEL_TIMEOUT_MS = 30_000;
 
 export class ModelRouter {
   private readonly providers = new Map<string, ModelProvider>();
+  private readonly timeoutMs: number;
+
+  constructor(options: { timeoutMs?: number } = {}) {
+    this.timeoutMs = options.timeoutMs ?? DEFAULT_MODEL_TIMEOUT_MS;
+  }
 
   register(provider: ModelProvider): void {
     this.providers.set(provider.id, provider);
@@ -19,23 +23,24 @@ export class ModelRouter {
     return this.providers.get(providerId);
   }
 
-  async generate(
-    providerId: string,
-    request: ModelRequest,
-  ): Promise<ModelResponse> {
+  async generate(providerId: string, request: ModelRequest): Promise<ModelResponse> {
     const provider = this.providers.get(providerId);
-
     if (!provider) {
-      throw new Error(
-        `Model provider not registered: ${providerId}`,
-      );
+      throw new Error(`Model provider not registered: ${providerId}`);
     }
 
-    const response = await provider.generate(request);
+    const timeoutMs = this.timeoutMs;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      const id = setTimeout(() => {
+        reject(new ModelTimeoutError(providerId, timeoutMs));
+      }, timeoutMs);
+      // Allow Node.js to exit if this is the only thing pending
+      if (typeof id === "object" && "unref" in id) (id as { unref(): void }).unref();
+    });
 
-    if (!response.usage) {
-      return response;
-    }
+    const response = await Promise.race([provider.generate(request), timeoutPromise]);
+
+    if (!response.usage) return response;
 
     return {
       ...response,
@@ -43,8 +48,7 @@ export class ModelRouter {
         ...response.usage,
         totalTokens:
           response.usage.totalTokens ??
-          (response.usage.inputTokens ?? 0) +
-            (response.usage.outputTokens ?? 0),
+          (response.usage.inputTokens ?? 0) + (response.usage.outputTokens ?? 0),
       },
     };
   }

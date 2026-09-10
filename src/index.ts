@@ -1,8 +1,16 @@
-export const KAIROS_VERSION = "0.1.0";
-
-export const KAIROS_IDENTITY = {
-  name: "KAIROS",
-  organization: "KyleDev Software Systems",
-  mission:
-    "Build increasingly general artificial intelligence through reasoning, memory, learning, perception, planning, and controlled action.",
-} as const;
+export * from "./core/orchestrator/orchestrator.js";
+export * from "./core/orchestrator/pipeline.js";
+export * from "./core/orchestrator/types.js";
+export * from "./core/orchestrator/session-orchestrator.js";
+export * from "./core/runtime/basic-runtime.js";
+export * from "./core/runtime/types.js";
+export * from "./core/tools/index.js";
+export * from "./core/experience/record.js";
+export * from "./core/memory/types.js";
+export * from "./core/decision/types.js";
+export * from "./core/observation/types.js";
+export * from "./core/observation/tool-aware-engine.js";
+export * from "./intelligence/index.js";
+export * from "./factory/index.js";
+export * from "./agents/index.js";
+export * from "./server/http-server.js";

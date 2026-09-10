@@ -1,4 +1,4 @@
-export const MEMORY_TYPES = [
+﻿export const MEMORY_TYPES = [
   "working",
   "episodic",
   "semantic",
@@ -26,12 +26,14 @@ export interface MemoryQuery {
 
 export interface MemoryStore {
   store(memory: Memory): Promise<Memory>;
-
   retrieve(query: MemoryQuery): Promise<readonly Memory[]>;
-
   get(id: string): Promise<Memory | undefined>;
-
   delete(id: string): Promise<boolean>;
-
   clear(): Promise<void>;
+}
+
+export interface PersistentMemoryStore extends MemoryStore {
+  flush(): Promise<void>;
+  load(): Promise<void>;
+  count(): Promise<number>;
 }

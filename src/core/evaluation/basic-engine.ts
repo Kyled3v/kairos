@@ -12,6 +12,7 @@ export class BasicEvaluationEngine implements EvaluationEngine {
 
     return {
       success: successful,
+      completed: successful,
       score: successful ? 1 : 0,
       explanation: successful
         ? `The observed action successfully advanced the goal: ${context.goal}`

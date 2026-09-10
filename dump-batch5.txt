@@ -1,0 +1,608 @@
+===== FILE: package.json =====
+{
+  "name": "@kyledev/kairos",
+  "version": "0.1.0",
+  "description": "**KyleDev Autonomous Intelligence & Reasoning Operating System**",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [],
+  "type": "module",
+  "private": "true",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "vitest": "^5.0.0"
+  }
+}
+
+
+===== FILE: src/security/authorization/basic-engine.ts =====
+import type {
+  AuthorizationContext,
+  AuthorizationDecision,
+  AuthorizationEngine,
+} from "./types.js";
+
+export class BasicAuthorizationEngine implements AuthorizationEngine {
+  async authorize(
+    context: AuthorizationContext,
+  ): Promise<AuthorizationDecision> {
+    const allowedActions = new Set([
+      "create-plan",
+      "inspect-state",
+    ]);
+
+    const allowed = allowedActions.has(context.action.name);
+
+    return {
+      allowed,
+      reason: allowed
+        ? "Action is permitted by the baseline policy."
+        : "Action is not permitted by the baseline policy.",
+      policyId: "baseline-deny-by-default-v1",
+    };
+  }
+}
+
+
+===== FILE: src/security/authorization/gateway.ts =====
+import type { ActionExecutor } from "../../core/action/executor.js";
+import type { ActionRequest, ActionResult } from "../../core/action/types.js";
+import type { AuthorizationEngine } from "./types.js";
+
+export class AuthorizedActionGateway {
+  constructor(
+    private readonly authorization: AuthorizationEngine,
+    private readonly executor: ActionExecutor,
+  ) {}
+
+  async execute(
+    actorId: string,
+    request: ActionRequest,
+  ): Promise<ActionResult> {
+    const decision = await this.authorization.authorize({
+      actorId,
+      action: request,
+    });
+
+    if (!decision.allowed) {
+      return {
+        actionId: request.id,
+        status: "blocked",
+        reason: decision.reason,
+      };
+    }
+
+    return this.executor.execute(request);
+  }
+}
+
+
+===== FILE: src/security/authorization/types.ts =====
+import type { ActionRequest } from "../../core/action/types.js";
+
+export interface AuthorizationContext {
+  readonly actorId: string;
+  readonly action: ActionRequest;
+}
+
+export interface AuthorizationDecision {
+  readonly allowed: boolean;
+  readonly reason: string;
+  readonly policyId: string;
+}
+
+export interface AuthorizationEngine {
+  authorize(
+    context: AuthorizationContext,
+  ): Promise<AuthorizationDecision>;
+}
+
+
+===== FILE: src/core/runtime/types.ts =====
+import type { CognitiveState } from "../cognition/states/types.js";
+import type { ReasoningResult } from "../reasoning/types.js";
+import type { Plan } from "../planning/types.js";
+import type { Decision } from "../decision/types.js";
+import type { AuthorizationDecision } from "../../security/authorization/types.js";
+import type { ActionResult } from "../action/types.js";
+import type { Observation } from "../observation/types.js";
+import type { Evaluation } from "../evaluation/types.js";
+import type { Reflection } from "../reflection/types.js";
+
+export interface KairosExecution {
+  readonly id: string;
+  readonly goal: string;
+  readonly currentState: CognitiveState;
+  readonly cycle: number;
+  readonly reasoning?: ReasoningResult;
+  readonly plan?: Plan;
+  readonly decision?: Decision;
+  readonly authorization?: AuthorizationDecision;
+  readonly action?: ActionResult;
+  readonly observation?: Observation;
+  readonly evaluation?: Evaluation;
+  readonly reflection?: Reflection;
+  readonly completed: boolean;
+  readonly terminationReason?: string;
+  readonly createdAt: Date;
+  readonly completedAt?: Date;
+}
+
+
+===== FILE: src/core/runtime/basic-runtime.ts =====
+import { createCognitiveContext } from "../cognition/context.js";
+import { CognitiveStateMachine } from "../cognition/state-machine.js";
+import { executeReasoning } from "../cognition/engine/reasoning.js";
+
+import { BasicReasoningEngine } from "../reasoning/engine/basic-engine.js";
+import { BasicPlanningEngine } from "../planning/basic-engine.js";
+import { BasicDecisionEngine } from "../decision/engine/basic-engine.js";
+
+import { BasicAuthorizationEngine } from "../../security/authorization/basic-engine.js";
+import { BasicActionExecutor } from "../action/basic-executor.js";
+import { AuthorizedActionGateway } from "../../security/authorization/gateway.js";
+
+import { BasicObservationEngine } from "../observation/basic-engine.js";
+import { BasicEvaluationEngine } from "../evaluation/basic-engine.js";
+import { BasicReflectionEngine } from "../reflection/basic-engine.js";
+
+import type { KairosExecution } from "./types.js";
+import type { KairosRuntime } from "./interface.js";
+
+export class BasicKairosRuntime implements KairosRuntime {
+  async execute(goal: string): Promise<KairosExecution> {
+    const createdAt = new Date();
+
+    let context = createCognitiveContext(goal);
+    const machine = new CognitiveStateMachine(context.state);
+
+    const reasoningEngine = new BasicReasoningEngine();
+    const planningEngine = new BasicPlanningEngine();
+    const decisionEngine = new BasicDecisionEngine();
+
+    const authorizationEngine = new BasicAuthorizationEngine();
+    const actionExecutor = new BasicActionExecutor();
+    const gateway = new AuthorizedActionGateway(
+      authorizationEngine,
+      actionExecutor,
+    );
+
+    const observationEngine = new BasicObservationEngine();
+    const evaluationEngine = new BasicEvaluationEngine();
+    const reflectionEngine = new BasicReflectionEngine();
+
+    machine.transition("UNDERSTAND");
+    context = { ...context, state: "UNDERSTAND" };
+
+    machine.transition("REASON");
+    context = { ...context, state: "REASON" };
+
+    const reasoning = await executeReasoning(
+      reasoningEngine,
+      context,
+    );
+
+    machine.transition("PLAN");
+    context = { ...context, state: "PLAN" };
+
+    const plan = await planningEngine.plan({
+      goal,
+      reasoning: reasoning.reasoning,
+    });
+
+    machine.transition("DECIDE");
+    context = { ...context, state: "DECIDE" };
+
+    const decision = await decisionEngine.decide({
+      goal,
+      plan,
+      authorized: true,
+    });
+
+    if (decision.blocked || !decision.selectedOptionId) {
+      return {
+        id: crypto.randomUUID(),
+        goal,
+        currentState: "DECIDE",
+        cycle: 1,
+        reasoning: reasoning.reasoning,
+        plan,
+        decision,
+        completed: false,
+        terminationReason: "Decision was blocked.",
+        createdAt,
+      };
+    }
+
+    const selectedStep = plan.steps.find(
+      (step) => step.id === decision.selectedOptionId,
+    );
+
+    const actionRequest = {
+      id: crypto.randomUUID(),
+      name: "create-plan",
+      description:
+        selectedStep?.description ?? "Execute selected plan step.",
+      parameters: {
+        goal,
+        planStepId: decision.selectedOptionId,
+      },
+      requestedBy: "kairos",
+    } as const;
+
+    const authorization = await authorizationEngine.authorize({
+      actorId: "kairos",
+      action: actionRequest,
+    });
+
+    if (!authorization.allowed) {
+      return {
+        id: crypto.randomUUID(),
+        goal,
+        currentState: "DECIDE",
+        cycle: 1,
+        reasoning: reasoning.reasoning,
+        plan,
+        decision,
+        authorization,
+        completed: false,
+        terminationReason: authorization.reason,
+        createdAt,
+      };
+    }
+
+    machine.transition("ACT");
+    context = { ...context, state: "ACT" };
+
+    const action = await gateway.execute(
+      "kairos",
+      actionRequest,
+    );
+
+    machine.transition("OBSERVE");
+    context = { ...context, state: "OBSERVE" };
+
+    const observation = await observationEngine.observe({
+      actionId: action.actionId,
+      actualOutcome: action,
+    });
+
+    machine.transition("EVALUATE");
+    context = { ...context, state: "EVALUATE" };
+
+    const evaluation = await evaluationEngine.evaluate({
+      goal,
+      observation,
+    });
+
+    machine.transition("REFLECT");
+    context = { ...context, state: "REFLECT" };
+
+    const reflection = await reflectionEngine.reflect({
+      goal,
+      evaluation,
+    });
+
+    if (reflection.continueTask) {
+      return {
+        id: crypto.randomUUID(),
+        goal,
+        currentState: "REFLECT",
+        cycle: 1,
+        reasoning: reasoning.reasoning,
+        plan,
+        decision,
+        authorization,
+        action,
+        observation,
+        evaluation,
+        reflection,
+        completed: false,
+        terminationReason: reflection.reason,
+        createdAt,
+      };
+    }
+
+    machine.transition("COMPLETE");
+
+    return {
+      id: crypto.randomUUID(),
+      goal,
+      currentState: "COMPLETE",
+      cycle: 1,
+      reasoning: reasoning.reasoning,
+      plan,
+      decision,
+      authorization,
+      action,
+      observation,
+      evaluation,
+      reflection,
+      completed: true,
+      terminationReason: "Objective completed.",
+      createdAt,
+      completedAt: new Date(),
+    };
+  }
+}
+
+
+===== FILE: src/core/memory/experience-bridge.ts =====
+import type { KairosExecution } from "../runtime/types.js";
+import type { MemoryStore } from "../memory/types.js";
+
+export async function rememberExecution(
+  execution: KairosExecution,
+  store: MemoryStore,
+): Promise<void> {
+  const summary = [
+    `Goal: ${execution.goal}`,
+    `Completed: ${execution.completed}`,
+    `Termination: ${execution.terminationReason ?? "none"}`,
+    execution.reasoning
+      ? `Reasoning: ${execution.reasoning.conclusion}`
+      : undefined,
+    execution.reflection
+      ? `Reflection: ${execution.reflection.summary}`
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  await store.store({
+    id: crypto.randomUUID(),
+    type: "episodic",
+    content: summary,
+    importance: execution.completed ? 0.9 : 0.7,
+    createdAt: execution.createdAt,
+    metadata: {
+      executionId: execution.id,
+      cycle: execution.cycle,
+      completed: execution.completed,
+    },
+  });
+
+  if (execution.plan) {
+    await store.store({
+      id: crypto.randomUUID(),
+      type: "procedural",
+      content: execution.plan.steps
+        .map((step) => `${step.order}. ${step.description}`)
+        .join("\n"),
+      importance: 0.8,
+      createdAt: execution.createdAt,
+      metadata: {
+        executionId: execution.id,
+        goal: execution.goal,
+      },
+    });
+  }
+}
+
+
+===== FILE: src/core/memory/working/memory.ts =====
+import type {
+  Memory,
+  MemoryQuery,
+  MemoryStore,
+} from "../types.js";
+
+export class WorkingMemory {
+  constructor(
+    private readonly store: MemoryStore,
+  ) {}
+
+  async remember(
+    content: string,
+    metadata: Readonly<Record<string, unknown>> = {},
+  ): Promise<Memory> {
+    return this.store.store({
+      id: crypto.randomUUID(),
+      type: "working",
+      content,
+      importance: 1,
+      createdAt: new Date(),
+      metadata,
+    });
+  }
+
+  async recall(
+    query: string,
+    limit = 10,
+  ): Promise<readonly Memory[]> {
+    const request: MemoryQuery = {
+      query,
+      type: "working",
+      limit,
+    };
+
+    return this.store.retrieve(request);
+  }
+}
+
+
+===== FILE: src/core/memory/episodic/memory.ts =====
+import type {
+  Memory,
+  MemoryStore,
+} from "../types.js";
+
+export class EpisodicMemory {
+  constructor(
+    private readonly store: MemoryStore,
+  ) {}
+
+  async rememberExperience(
+    content: string,
+    metadata: Readonly<Record<string, unknown>> = {},
+    importance = 0.8,
+  ): Promise<Memory> {
+    return this.store.store({
+      id: crypto.randomUUID(),
+      type: "episodic",
+      content,
+      importance: Math.max(0, Math.min(1, importance)),
+      createdAt: new Date(),
+      metadata,
+    });
+  }
+
+  async recall(
+    query: string,
+    limit = 10,
+  ): Promise<readonly Memory[]> {
+    return this.store.retrieve({
+      query,
+      type: "episodic",
+      limit,
+    });
+  }
+}
+
+
+===== FILE: src/core/memory/semantic/memory.ts =====
+import type {
+  Memory,
+  MemoryStore,
+} from "../types.js";
+
+export class SemanticMemory {
+  constructor(
+    private readonly store: MemoryStore,
+  ) {}
+
+  async rememberFact(
+    content: string,
+    metadata: Readonly<Record<string, unknown>> = {},
+    importance = 0.9,
+  ): Promise<Memory> {
+    return this.store.store({
+      id: crypto.randomUUID(),
+      type: "semantic",
+      content,
+      importance: Math.max(0, Math.min(1, importance)),
+      createdAt: new Date(),
+      metadata,
+    });
+  }
+
+  async recall(
+    query: string,
+    limit = 10,
+  ): Promise<readonly Memory[]> {
+    return this.store.retrieve({
+      query,
+      type: "semantic",
+      limit,
+    });
+  }
+}
+
+
+===== FILE: src/core/memory/procedural/memory.ts =====
+import type {
+  Memory,
+  MemoryStore,
+} from "../types.js";
+
+export class ProceduralMemory {
+  constructor(
+    private readonly store: MemoryStore,
+  ) {}
+
+  async rememberProcedure(
+    content: string,
+    metadata: Readonly<Record<string, unknown>> = {},
+    importance = 0.85,
+  ): Promise<Memory> {
+    return this.store.store({
+      id: crypto.randomUUID(),
+      type: "procedural",
+      content,
+      importance: Math.max(0, Math.min(1, importance)),
+      createdAt: new Date(),
+      metadata,
+    });
+  }
+
+  async recall(
+    query: string,
+    limit = 10,
+  ): Promise<readonly Memory[]> {
+    return this.store.retrieve({
+      query,
+      type: "procedural",
+      limit,
+    });
+  }
+}
+
+
+===== FILE: src/core/action/tool-action-executor.ts =====
+import type { ActionExecutor } from "./executor.js";
+import type { ActionRequest, ActionResult } from "./types.js";
+import type { ToolGateway } from "../tools/gateway.js";
+
+export class ToolActionExecutor implements ActionExecutor {
+  constructor(private readonly gateway: ToolGateway) {}
+
+  async execute(request: ActionRequest): Promise<ActionResult> {
+    const output = await this.gateway.execute(
+      request.requestedBy,
+      {
+        toolId: request.name,
+        parameters: request.parameters,
+        requestedBy: request.requestedBy,
+        requestId: request.id,
+      },
+    );
+
+    if (output.status === "blocked") {
+      return output.error !== undefined
+        ? { actionId: request.id, status: "blocked", reason: output.error }
+        : { actionId: request.id, status: "blocked" };
+    }
+
+    if (output.status === "failure") {
+      return output.error !== undefined
+        ? { actionId: request.id, status: "failed", reason: output.error }
+        : { actionId: request.id, status: "failed" };
+    }
+
+    return output.result !== undefined
+      ? { actionId: request.id, status: "completed", output: output.result }
+      : { actionId: request.id, status: "completed" };
+  }
+}
+
+
+===== FILE: src/core/action/types.ts =====
+export interface ActionRequest {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly parameters: Readonly<Record<string, unknown>>;
+  readonly requestedBy: string;
+}
+
+export interface ActionResult {
+  readonly actionId: string;
+  readonly status: "completed" | "blocked" | "failed";
+  readonly output?: unknown;
+  readonly reason?: string;
+}
+
+

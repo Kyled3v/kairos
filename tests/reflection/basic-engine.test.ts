@@ -3,6 +3,7 @@ import { BasicReflectionEngine } from "../../src/core/reflection/basic-engine.js
 
 const failedEvaluation = {
   success: false,
+  completed: false,
   score: 0,
   explanation: "Action failed.",
   discrepancies: ["Expected completion was not observed."],
@@ -16,6 +17,7 @@ describe("BasicReflectionEngine", () => {
       goal: "Build Nexus",
       evaluation: {
         success: true,
+        completed: true,
         score: 1,
         explanation: "Action succeeded.",
         discrepancies: [],
