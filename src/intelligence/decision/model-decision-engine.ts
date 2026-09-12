@@ -1,4 +1,4 @@
-﻿import type { ModelMessage } from "../models/types.js";
+import type { ModelMessage } from "../models/types.js";
 import { ModelRouter } from "../models/router.js";
 import type { Decision, DecisionOption } from "../../core/decision/types.js";
 import type { DecisionContext, DecisionEngine } from "../../core/decision/engine/types.js";
@@ -7,6 +7,8 @@ export interface ModelDecisionOptions {
   readonly providerId: string;
   readonly modelId: string;
   readonly systemPrompt?: string;
+  readonly streaming?: boolean;
+  readonly onDelta?: (delta: string) => void;
 }
 
 export class ModelDecisionEngine implements DecisionEngine {
@@ -69,6 +71,8 @@ export class ModelDecisionEngine implements DecisionEngine {
         temperature: 0.1,
         maxTokens: 500,
         responseFormat: "json",
+        ...(this.options.streaming === true ? { streaming: true } : {}),
+        ...(this.options.onDelta !== undefined ? { onDelta: this.options.onDelta } : {}),
       },
     );
 

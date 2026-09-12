@@ -1,4 +1,4 @@
-﻿import type { ModelMessage } from "../models/types.js";
+import type { ModelMessage } from "../models/types.js";
 import { ModelRouter } from "../models/router.js";
 import type { Evaluation, EvaluationContext, EvaluationEngine } from "../../core/evaluation/types.js";
 
@@ -6,6 +6,8 @@ export interface ModelEvaluationOptions {
   readonly providerId: string;
   readonly modelId: string;
   readonly systemPrompt?: string;
+  readonly streaming?: boolean;
+  readonly onDelta?: (delta: string) => void;
 }
 
 export class ModelEvaluationEngine implements EvaluationEngine {
@@ -44,6 +46,8 @@ export class ModelEvaluationEngine implements EvaluationEngine {
         temperature: 0.1,
         maxTokens: 500,
         responseFormat: "json",
+        ...(this.options.streaming === true ? { streaming: true } : {}),
+        ...(this.options.onDelta !== undefined ? { onDelta: this.options.onDelta } : {}),
       },
     );
 

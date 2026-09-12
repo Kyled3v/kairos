@@ -1,4 +1,4 @@
-﻿import type { ModelMessage } from "../models/types.js";
+import type { ModelMessage } from "../models/types.js";
 import { ModelRouter } from "../models/router.js";
 import type { Reflection, ReflectionContext, ReflectionEngine } from "../../core/reflection/types.js";
 
@@ -6,6 +6,8 @@ export interface ModelReflectionOptions {
   readonly providerId: string;
   readonly modelId: string;
   readonly systemPrompt?: string;
+  readonly streaming?: boolean;
+  readonly onDelta?: (delta: string) => void;
 }
 
 export class ModelReflectionEngine implements ReflectionEngine {
@@ -47,6 +49,8 @@ export class ModelReflectionEngine implements ReflectionEngine {
         temperature: 0.3,
         maxTokens: 500,
         responseFormat: "json",
+        ...(this.options.streaming === true ? { streaming: true } : {}),
+        ...(this.options.onDelta !== undefined ? { onDelta: this.options.onDelta } : {}),
       },
     );
 

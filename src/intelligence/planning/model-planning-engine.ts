@@ -1,4 +1,4 @@
-﻿import type { ModelMessage } from "../models/types.js";
+import type { ModelMessage } from "../models/types.js";
 import { ModelRouter } from "../models/router.js";
 import type { Plan } from "../../core/planning/types.js";
 import type { PlanningContext, PlanningEngine } from "../../core/planning/engine-types.js";
@@ -7,6 +7,8 @@ export interface ModelPlanningOptions {
   readonly providerId: string;
   readonly modelId: string;
   readonly systemPrompt?: string;
+  readonly streaming?: boolean;
+  readonly onDelta?: (delta: string) => void;
 }
 
 export class ModelPlanningEngine implements PlanningEngine {
@@ -43,6 +45,8 @@ export class ModelPlanningEngine implements PlanningEngine {
         temperature: 0.2,
         maxTokens: 1000,
         responseFormat: "json",
+        ...(this.options.streaming === true ? { streaming: true } : {}),
+        ...(this.options.onDelta !== undefined ? { onDelta: this.options.onDelta } : {}),
       },
     );
 

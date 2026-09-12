@@ -5,6 +5,7 @@ import type { KairosMemory } from "../core/memory/kairos-memory.js";
 import { MEMORY_TYPES, type MemoryType } from "../core/memory/types.js";
 import { createKairos } from "../factory/index.js";
 import { AuthMiddleware } from "./auth.js";
+import { withSpan } from "../telemetry/index.js";
 
 export interface KairosServerOptions {
   readonly dependencies: PipelineDependencies;
@@ -242,7 +243,7 @@ async function handleMemory(
  *   GET  /experience        ?outcome=&goalContains=&modelProvider=&sessionId=&since=&limit= -> ExperienceRecord[]
  *   GET  /experience/:id    -> ExperienceRecord | 404
  *   GET  /memory            ?query=&type=&limit= -> Memory[]
- * No framework dependency â€” routing and JSON body parsing are handled
+ * No framework dependency ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â routing and JSON body parsing are handled
  * directly against node:http.
  */
 
@@ -331,9 +332,9 @@ export function createKairosServer(options: KairosServerOptions): Server {
 
         const url = new URL(req.url, "http://localhost");
 
-        if (req.method === "POST" && url.pathname === "/stream") { await handleRunStream(req, res, options); }
-        else if (req.method === "POST" && url.pathname === "/run") { await handleRun(req, res, options); }
-        else if (req.method === "GET" && url.pathname === "/experience") { await handleListExperience(url, res, options); }
+        if (req.method === "POST" && url.pathname === "/stream") { await withSpan("kairos.http", "http.stream", { "http.method": "POST", "http.path": "/stream" }, () => handleRunStream(req, res, options)); }
+        else if (req.method === "POST" && url.pathname === "/run") { await withSpan("kairos.http", "http.run", { "http.method": "POST", "http.path": "/run" }, () => handleRun(req, res, options)); }
+        else if (req.method === "GET" && url.pathname === "/experience") { await withSpan("kairos.http", "http.experience", { "http.method": "GET", "http.path": "/experience" }, () => handleListExperience(url, res, options)); }
         else {
           const experienceIdMatch = /^\/experience\/([^/]+)$/.exec(url.pathname);
           if (req.method === "GET" && experienceIdMatch !== null && experienceIdMatch[1] !== undefined) {

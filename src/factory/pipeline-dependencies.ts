@@ -1,4 +1,4 @@
-﻿import { BasicReasoningEngine } from "../core/reasoning/engine/basic-engine.js";
+import { BasicReasoningEngine } from "../core/reasoning/engine/basic-engine.js";
 import { BasicPlanningEngine } from "../core/planning/basic-engine.js";
 import { BasicDecisionEngine } from "../core/decision/engine/basic-engine.js";
 import { BasicObservationEngine } from "../core/observation/basic-engine.js";
@@ -75,20 +75,28 @@ export function createPipelineDependencies(
     const planning = new ModelPlanningEngine(config.router, {
       providerId: config.providerId,
       modelId: config.modelId,
+      ...(config.streaming?.streaming === true ? { streaming: true } : {}),
+      ...(config.streaming?.onDelta !== undefined ? { onDelta: (delta: string) => config.streaming!.onDelta!("plan", delta) } : {}),
     });
 
     let decisionEngine = new ModelDecisionEngine(config.router, {
       providerId: config.providerId,
       modelId: config.modelId,
+      ...(config.streaming?.streaming === true ? { streaming: true } : {}),
+      ...(config.streaming?.onDelta !== undefined ? { onDelta: (delta: string) => config.streaming!.onDelta!("decide", delta) } : {}),
     });
 
     const evaluation = new ModelEvaluationEngine(config.router, {
       providerId: config.providerId,
       modelId: config.modelId,
+      ...(config.streaming?.streaming === true ? { streaming: true } : {}),
+      ...(config.streaming?.onDelta !== undefined ? { onDelta: (delta: string) => config.streaming!.onDelta!("evaluate", delta) } : {}),
     });
     const reflection = new ModelReflectionEngine(config.router, {
       providerId: config.providerId,
       modelId: config.modelId,
+      ...(config.streaming?.streaming === true ? { streaming: true } : {}),
+      ...(config.streaming?.onDelta !== undefined ? { onDelta: (delta: string) => config.streaming!.onDelta!("reflect", delta) } : {}),
     });
 
     const decisionStage =

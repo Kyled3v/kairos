@@ -33,6 +33,7 @@ import { ModelRouter } from "./intelligence/models/router.js";
 import { AnthropicProvider } from "./intelligence/models/providers/anthropic-provider.js";
 import { OllamaProvider } from "./intelligence/models/providers/ollama-provider.js";
 import type { PipelineDependencies } from "./core/orchestrator/pipeline.js";
+import { initTelemetry } from "./telemetry/index.js";
 
 function buildToolGateway(): ObservedToolGateway {
   const registry = new ToolRegistry();
@@ -55,6 +56,7 @@ function buildToolGateway(): ObservedToolGateway {
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
+  initTelemetry({ serviceName: "kairos", serviceVersion: "0.1.0" });
 
   const port = typeof args["port"] === "string" ? parseInt(args["port"], 10) : 4000;
   const experiencePath = typeof args["experience"] === "string" ? args["experience"] : undefined;

@@ -4,7 +4,7 @@ import type { Tool, ToolInput, ToolOutput } from "../types.js";
 
 const execAsync = promisify(exec);
 
-// Strict allowlist — never permit arbitrary shell execution.
+// Strict allowlist â€” never permit arbitrary shell execution.
 const COMMAND_ALLOWLIST: readonly string[] = [
   "npm test",
   "npm run test",
@@ -17,6 +17,10 @@ const COMMAND_ALLOWLIST: readonly string[] = [
   "git log",
   "git branch",
   "git show",
+  "git add",
+  "git commit",
+  "git stash",
+  "git checkout",
 ];
 
 function isAllowlisted(command: string): boolean {

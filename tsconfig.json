@@ -1,4 +1,4 @@
-﻿{
+{
   "compilerOptions": {
     "module": "nodenext",
     "target": "esnext",
@@ -15,5 +15,6 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true
-  }
+  },
+  "exclude": ["packages", "node_modules"]
 }
