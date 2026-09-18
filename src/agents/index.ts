@@ -11,3 +11,5 @@ export * from "./knowledge/index.js";
 export * from "./observation/index.js";
 export * from "./engineering/index.js";
 export * from "./creation/index.js";
+export * from "./execution/index.js";
+export * from "./security/index.js";

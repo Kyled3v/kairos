@@ -164,6 +164,38 @@ pipeline stages.
    default stays backward compatible for embedders that manage their own
    confinement.
 
+## Amendment — 2026-09-18 (VECTOR, VANGUARD, roster complete)
+
+The Phase 3 roster is complete: all eight named agents exist. The final
+pair demonstrates the two opposite ends of the privilege spectrum:
+
+1. **VECTOR (authorized execution)**: execution power as an explicit,
+   confined grant. run-command requires allowExecute and is always
+   constructed via createRunCommandTool with a workingRoot; write-file
+   requires allowWrite. ActionRequests additionally pass through the
+   AuthorizedActionGateway with deny-by-default authorization — the tool
+   boundary and the action boundary are enforced independently, so a
+   granted shell never implies granted actions.
+2. **VANGUARD (security/governance)**: the enforcer is deliberately the
+   least privileged actor — read-only inspection tools, findings only in
+   its own memory scope. Its authority is judgment and veto:
+   screenTool() checks tool definitions against governance policy,
+   authorizeAction() runs a deny-by-default engine, complianceReview()
+   batch-audits toolsets. Enforcement requires visibility, not mutation.
+3. **Knowledge pipeline** (src/core/knowledge/pipeline.ts): Phase 2's
+   remainder — source validation (trusted domains, length rules,
+   prompt-injection pattern rejection), validating ingestion with
+   deduplication, importance-ranked retrieval and per-topic history. An
+   ownerAgentId option tags ingested memories so they land inside a
+   named specialist's scoped view; the SAGE integration is tested.
+   Content is data, not instructions: injection-pattern content never
+   enters the knowledge base.
+4. **Execution routing**: the "execution" role was added to the ATLAS
+   smart-strategy keyword table (execute/run/deploy/release/operate/
+   rollout/provision), making VECTOR automatically routable like every
+   other specialist — zero ATLAS changes, as predicted in the smart
+   decomposition amendment.
+
 ## Alternatives Considered
 
 - **Subclassing KairosAgent**: rejected — the project prefers composition

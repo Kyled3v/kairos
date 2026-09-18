@@ -59,8 +59,10 @@ Named specialist agents built on the generic KAIROS agent infrastructure. Each f
 | **PULSE** | Observation and monitoring | ✅ Implemented | Read-only probes; graceful `operational / degraded / unreachable` reporting |
 | **FORGE** | Engineering | ✅ Implemented | Read-only by default; `allowWrite` / `allowRunCommand` unlock gated write + allowlisted shell access |
 | **NOVA** | Creation and synthesis | ✅ Implemented | Read-only source/reference tools; drafts and syntheses stored as memory, never files |
-| **VECTOR** | Execution | ⏳ Planned | — |
-| **VANGUARD** | Security and governance | ⏳ Planned | — |
+| **VECTOR** | Authorized execution | ✅ Implemented | Verification probes by default; `allowExecute` / `allowWrite` unlock confined commands + gated writes; deny-by-default action authorization |
+| **VANGUARD** | Security and governance | ✅ Implemented | Read-only inspection tools; tool screening, deny-by-default governance, compliance review — the least privileged actor |
+
+All eight named agents are implemented — the Phase 3 roster is complete.
 
 Agent responsibilities may evolve as the architecture matures. Names do not define implementation boundaries.
 

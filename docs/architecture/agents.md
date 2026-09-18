@@ -72,8 +72,24 @@ a failed probe yields a degraded/unreachable report, never an exception.
 VECTOR
 Authorized execution and operational tasks.
 
+Status: IMPLEMENTED (see src/agents/execution/vector-agent.ts and ADR-001).
+VECTOR composes KairosAgent with verification probes by default; the
+run-command tool requires allowExecute: true and is always confined to a
+working root with the strict command allowlist, and write-file requires
+allowWrite: true. Action requests route through the AuthorizedActionGateway
+with deny-by-default authorization — execution power is opt-in, confined
+and audited. Execution outcomes land in scoped episodic memory.
+
 VANGUARD
 Security, governance and policy enforcement.
+
+Status: IMPLEMENTED (see src/agents/security/vanguard-agent.ts and ADR-001).
+VANGUARD is deliberately the least privileged actor: read-only inspection
+tools, findings stored only in its own memory scope. It screens tool
+definitions against governance policy (screenTool), authorizes action
+requests through a deny-by-default engine (authorizeAction), and batch-
+reviews toolsets for violations (complianceReview). The enforcer holds
+judgment and veto power — never execution power.
 
 ## Agent Contract
 

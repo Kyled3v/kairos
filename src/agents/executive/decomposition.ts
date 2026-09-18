@@ -81,6 +81,13 @@ const ROLE_KEYWORDS: readonly { role: string; keywords: readonly string[] }[] = 
       "compliance", "secure",
     ],
   },
+  {
+    role: "execution",
+    keywords: [
+      "execute", "run", "deploy", "release", "operate", "operate",
+      "rollout", "provision",
+    ],
+  },
 ];
 
 const EXECUTIVE_ROLES: ReadonlySet<string> = new Set(["executive"]);

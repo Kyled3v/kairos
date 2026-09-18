@@ -151,10 +151,23 @@ export { SageAgent } from "./agents/knowledge/sage-agent.js";
 export { PulseAgent } from "./agents/observation/pulse-agent.js";
 export { ForgeAgent } from "./agents/engineering/forge-agent.js";
 export { NovaAgent } from "./agents/creation/nova-agent.js";
+export { VectorAgent } from "./agents/execution/vector-agent.js";
+export { VanguardAgent } from "./agents/security/vanguard-agent.js";
 export {
   createSmartStrategy,
   splitObjectiveIntoClauses,
 } from "./agents/executive/decomposition.js";
+export {
+  KnowledgePipeline,
+  BasicSourceValidator,
+} from "./core/knowledge/pipeline.js";
+
+export type {
+  KnowledgePipelineOptions,
+  KnowledgeIngestion,
+  KnowledgeRetrievalQuery,
+  SourceValidationDecision,
+} from "./core/knowledge/pipeline.js";
 
 export type {
   AgentIdentity,
@@ -190,6 +203,15 @@ export type {
 export type {
   NovaAgentOptions,
 } from "./agents/creation/nova-agent.js";
+
+export type {
+  VectorAgentOptions,
+} from "./agents/execution/vector-agent.js";
+
+export type {
+  VanguardAgentOptions,
+  ComplianceReport,
+} from "./agents/security/vanguard-agent.js";
 
 export type {
   SmartSubTask,

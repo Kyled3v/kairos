@@ -13,9 +13,38 @@ All notable KAIROS changes are recorded here.
 - AGI vision
 - Architecture specification
 - Agent development instructions
-- Living project state
+- Living project state## [0.1.0] - 2026-09-18 (batch 5)
 
-## [0.1.0] - 2026-09-18 (batch 4)
+### Added
+
+- VECTOR specialist agent (authorized execution) — seventh named agent:
+  verification probes by default, gated and confined run-command (via
+  createRunCommandTool with workingRoot), gated write-file, and
+  ActionRequests routed through AuthorizedActionGateway with deny-by-
+  default authorization. Execution outcomes recorded as episodic memory.
+  Exported from the public SDK as VectorAgent.
+- VANGUARD specialist agent (security and governance) — eighth named
+  agent and the roster's completion: read-only inspection tools,
+  screenTool() policy screening, deny-by-default governance
+  authorization with a configurable allowlist, complianceReview() batch
+  audits, and findings as scoped semantic memory. Exported from the
+  public SDK as VanguardAgent.
+- Knowledge pipeline (src/core/knowledge/pipeline.ts) completing the
+  Phase 2 remainder: BasicSourceValidator (trusted domains, minimum
+  length, prompt-injection pattern rejection), KnowledgePipeline with
+  validating deduplicating ingestion, importance-ranked retrieval,
+  per-topic ingestion history, and an ownerAgentId option that feeds a
+  named specialist's scoped memory (SAGE integration tested). Exported
+  from the public SDK.
+- "execution" role added to the ATLAS smart-strategy keyword table
+  (execute/run/deploy/release/operate/rollout/provision) so VECTOR is
+  automatically routable.
+
+### Changed
+
+- ROADMAP Phase 3 agent roster complete (all eight named agents checked).
+
+## [0.1.0] - 2026-09-18 (batch 4)
 
 ### Added
 

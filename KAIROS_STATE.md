@@ -22,6 +22,9 @@ Last synchronized: 2026-09-18
 - Goal decomposition (basic + model decomposer)
 - Memory system: working, episodic, semantic, procedural memory types;
   KairosMemory facade; in-memory, file-backed and Neon-backed stores
+- Knowledge pipeline: source validation (trust lists, length rules,
+  prompt-injection rejection), validating ingestion with deduplication,
+  ranked retrieval, per-topic ingestion history (src/core/knowledge)
 - Experience system: records, stores (in-memory/file/Neon), recorder,
   ExperienceAnalyser, ExperienceExporter, feedback bridge
 - Tool system: registry, policy, gateway, observed gateway, selection policy,
@@ -50,11 +53,13 @@ Last synchronized: 2026-09-18
 - Reasoning engine: IMPLEMENTED
 - Memory system: IMPLEMENTED (working/episodic/semantic/procedural)
 - Tool system: IMPLEMENTED (registry, policy, gateway, built-ins)
-- Agent orchestration: INFRASTRUCTURE IMPLEMENTED; named specialist agents
-  ATLAS (executive), ORION (research), SAGE (knowledge), PULSE (observation),
-  FORGE (engineering, write/execute capability gated behind explicit flags)
-  and NOVA (creation/synthesis, output-to-memory) instantiated; smart +
-  model-backed objective decomposition — VECTOR/VANGUARD remaining
+- Agent orchestration: INFRASTRUCTURE IMPLEMENTED; all eight named
+  specialist agents instantiated — ATLAS (executive), ORION (research),
+  SAGE (knowledge), PULSE (observation), FORGE (engineering, gated
+  write/execute), NOVA (creation/synthesis, output-to-memory), VECTOR
+  (authorized execution, confined + deny-by-default authorization) and
+  VANGUARD (security/governance, policy screening + compliance review);
+  smart + model-backed objective decomposition
 - Public API: IMPLEMENTED (HTTP server with auth, rate limiting, SSE)
 - Public SDK interface: IMPLEMENTED
 - AGI evaluation system: PARTIAL (experience analytics, the multi-agent
@@ -64,14 +69,30 @@ Last synchronized: 2026-09-18
 
 ## Current Priority
 
-1. Remaining named specialist agents (VECTOR/VANGUARD)
-   using the composition pattern (see ADR-001)
-2. Knowledge ingestion, retrieval and source validation (Phase 2 remainder;
-   SAGE provides the agent-side storage and retrieval surface)
-3. Further evaluation suites per KAIROS_CONSTITUTION.md section 9 (delegation,
-   reasoning, planning and memory covered; generalization benchmarks next)
+1. All eight named specialist agents instantiated (Phase 3 roster
+   complete); remaining Phase 3 item: none — sandboxing shipped with the
+   hardened run-command tool
+2. Further evaluation suites per KAIROS_CONSTITUTION.md section 9
+   (delegation, reasoning, planning and memory covered; generalization
+   benchmarks next)
+3. Vector deployment: knowledge pipeline is available for SAGE-backed
+   retrieval in public KAIROS (Phase 4: web interface, accounts, public
+   agent creation)
 
 ## Maintenance Notes
+
+- 2026-09-18: Completed the Phase 3 agent roster — instantiated VECTOR
+  (authorized execution: gated, confined run-command via
+  createRunCommandTool, deny-by-default action authorization through
+  AuthorizedActionGateway) and VANGUARD (security/governance: tool
+  screening, deny-by-default governance authorization, compliance
+  review, findings memory). Added the knowledge pipeline
+  (src/core/knowledge/pipeline.ts): source validation with trusted-domain
+  and prompt-injection rules, deduplicating ingestion, ranked retrieval,
+  per-topic history; ownerAgentId wires ingested knowledge into a
+  specialist's scoped memory (SAGE integration tested). Added the
+  "execution" role to the ATLAS smart-strategy keyword table.
+  39 new tests; suite at 447 passing.
 
 - 2026-09-18: Instantiated NOVA (creation/synthesis specialist), added the
   memory benchmark suite (evals/memory, M1–M10) and hardened the

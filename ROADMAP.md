@@ -27,9 +27,9 @@
 - [x] Semantic memory
 - [x] Episodic memory
 - [x] Procedural memory
-- [ ] Knowledge ingestion
-- [ ] Retrieval
-- [ ] Source validation
+- [x] Knowledge ingestion
+- [x] Retrieval
+- [x] Source validation
 
 ## Phase 3 — Agents & Tools
 
@@ -39,8 +39,8 @@
 - [x] FORGE
 - [x] SAGE
 - [x] PULSE
-- [ ] VECTOR
-- [ ] VANGUARD
+- [x] VECTOR
+- [x] VANGUARD
 - [x] Tool permissions
 - [x] Sandboxing
 
