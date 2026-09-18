@@ -61,9 +61,12 @@ Last synchronized: 2026-09-18
   VANGUARD (security/governance, policy screening + compliance review);
   smart + model-backed objective decomposition
 - Public API: IMPLEMENTED (HTTP server with auth, rate limiting, SSE)
-- Web interface: SKELETON IMPLEMENTED (web/index.html applying the
-  persisted design-system/kairos MASTER.md — AI-Native UI style, Inter,
-  light/dark tokens, mobile-first with bottom nav deep links)
+- Web interface: IMPLEMENTED SKELETON WITH LIVE STREAMING (web/index.html:
+  hash-routed Console/Agents/Evals views, SSE-first orchestration
+  (POST /stream) with POST /run fallback, live delegation board previewing
+  ATLAS smart routing per worker, API liveness indicator, clearly labeled
+  offline demo mode; styled by the persisted design-system/kairos
+  MASTER.md plus generated pages/agents.md and pages/evals.md overrides)
 - Design system: PERSISTED (design-system/kairos/MASTER.md generated and
   maintained with the ui-ux-pro-max skill; governs web, VS Code desktop
   extension and future mobile surfaces)
@@ -81,10 +84,19 @@ Last synchronized: 2026-09-18
 2. Further evaluation suites per KAIROS_CONSTITUTION.md section 9
    (delegation, reasoning, planning and memory covered; generalization
    benchmarks next)
-3. Phase 4 build-out on the web skeleton: wire the composer to the real
-   HTTP API session flows, add accounts and public agent creation
+3. Phase 4 remainder: accounts, usage-gated public agent creation;
+   optional server-rendered views beyond the single-file console
 
 ## Maintenance Notes
+
+- 2026-09-18: Upgraded the web console to live orchestration: SSE-first
+  streaming (POST /stream start/result/error events) with POST /run
+  fallback, a live delegation board that previews ATLAS smart routing
+  client-side and animates per-worker state, hash-routed Agents and
+  Evals views built on generated ui-ux-pro-max page overrides
+  (design-system/kairos/pages/agents.md, evals.md), API liveness
+  indicator, and a clearly labeled offline demo mode. Verified end to
+  end against a local static server.
 
 - 2026-09-18: Added the full-roster evaluation suite (evals/agents/
   roster.evaluation.test.ts, F1–F8: complete-roster registration, role

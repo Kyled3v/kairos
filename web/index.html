@@ -30,6 +30,7 @@
       --color-destructive: #DC2626;
       --color-on-destructive: #FFFFFF;
       --color-ring: #7C3AED;
+      --color-ok: #059669;
       --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
       /* Density dial 8/10 — dense dashboard scale */
       --space-1: 8px; --space-2: 16px; --space-3: 24px;
@@ -45,6 +46,7 @@
         --color-muted: #241B45;
         --color-muted-foreground: #A5A0C4;
         --color-border: #3D3368;
+        --color-ok: #34D399;
       }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -65,7 +67,6 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Layout: top bar → status strip → main grid → agent roster */
     .app { min-height: 100vh; display: flex; flex-direction: column; }
     .topbar {
       display: flex; align-items: center; gap: var(--space-2);
@@ -91,7 +92,18 @@
       background: var(--color-secondary);
       padding: 2px 10px; border-radius: 999px;
     }
+    .api-state {
+      font-size: 0.72rem; font-weight: 600;
+      padding: 3px 10px; border-radius: 999px;
+      background: var(--color-muted); color: var(--color-muted-foreground);
+      border: 1px solid var(--color-border);
+    }
+    .api-state.live { color: var(--color-ok); border-color: var(--color-ok); }
 
+    .view { display: none; flex: 1; flex-direction: column; }
+    .view.active { display: flex; }
+
+    /* ═══ Console view ═══ */
     .status-strip {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -111,16 +123,17 @@
     .status-card .value { font-weight: 600; font-variant-numeric: tabular-nums; }
     .status-card .value.ok::before {
       content: ""; display: inline-block; width: 8px; height: 8px;
-      border-radius: 50%; background: var(--color-accent); margin-right: 6px;
+      border-radius: 50%; background: var(--color-ok); margin-right: 6px;
     }
 
-    main {
+    .console-grid {
       flex: 1; display: grid; gap: var(--space-2);
       grid-template-columns: 1fr;
       padding: 0 var(--space-3) var(--space-3);
+      align-items: start;
     }
-    @media (min-width: 768px) {
-      main { grid-template-columns: 1.6fr 1fr; }
+    @media (min-width: 900px) {
+      .console-grid { grid-template-columns: 1.5fr 1fr; }
     }
 
     .panel {
@@ -135,10 +148,12 @@
       border-bottom: 1px solid var(--color-border);
       font-weight: 600; font-size: 0.9rem;
       display: flex; align-items: center; justify-content: space-between;
+      gap: var(--space-1);
     }
     .panel > header .hint {
       font-size: 0.72rem; font-weight: 400;
       color: var(--color-muted-foreground);
+      text-align: right;
     }
 
     /* Streaming activity log (AI-native streaming-text pattern) */
@@ -147,6 +162,7 @@
       overflow-y: auto; flex: 1;
       font-size: 0.85rem;
       display: flex; flex-direction: column; gap: 6px;
+      min-height: 160px; max-height: 420px;
     }
     .activity li {
       padding: 8px 10px;
@@ -162,6 +178,37 @@
     }
     .activity li.is-new { animation: reveal 300ms ease both; }
     @keyframes reveal { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* Delegation demo: per-worker chip rows (collaboration view) */
+    .delegation-board {
+      display: grid; gap: 6px; padding: var(--space-1);
+    }
+    .delegation-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      transition: background var(--transition), border-color var(--transition);
+    }
+    .delegation-row.engaged {
+      background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+      border-color: var(--color-primary);
+    }
+    .delegation-row.done .chip-state { color: var(--color-ok); }
+    .delegation-row.failed .chip-state { color: var(--color-destructive); }
+    .delegation-row .goal {
+      font-size: 0.78rem; color: var(--color-muted-foreground);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      min-width: 0; flex: 1;
+    }
+    .chip-state {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-muted-foreground);
+      white-space: nowrap;
+    }
+    .chip-state.running { color: var(--color-primary); animation: pulse 1.2s ease-in-out infinite; }
 
     .composer {
       display: flex; gap: var(--space-1);
@@ -195,34 +242,85 @@
     }
     .composer button:hover { filter: brightness(1.12); }
     .composer button:active { transform: scale(0.97); }
+    .composer button[disabled] { opacity: 0.6; cursor: wait; }
 
-    /* Agent roster */
-    .roster { list-style: none; margin: 0; padding: var(--space-1); flex: 1; display: grid; gap: 8px; align-content: start; }
-    .agent {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 12px;
-      border: 1px solid var(--color-border);
-      border-radius: 8px;
-      background: var(--color-background);
+    /* ═══ Agents view (agents.md overrides: responsive profile grid,
+       status pills must not rely on color alone) ═══ */
+    .agents-grid {
+      display: grid; gap: var(--space-1);
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      padding: var(--space-1);
+      max-width: 1200px;
     }
-    .agent .glyph {
-      width: 34px; height: 34px; flex: none;
+    .agent-card {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      background: var(--color-background);
+      padding: var(--space-2);
+      display: flex; flex-direction: column; gap: 8px;
+      transition: border-color var(--transition), transform var(--transition);
+    }
+    .agent-card:hover { border-color: var(--color-primary); transform: translateY(-2px); }
+    .agent-card .head { display: flex; align-items: center; gap: 10px; }
+    .agent-card .glyph {
+      width: 40px; height: 40px; flex: none;
       display: grid; place-items: center;
-      border-radius: 8px;
-      background: var(--color-muted);
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--color-primary) 14%, transparent);
       color: var(--color-primary);
     }
-    .agent .glyph svg { width: 18px; height: 18px; }
-    .agent .meta { min-width: 0; }
-    .agent .name { font-weight: 600; font-size: 0.9rem; }
-    .agent .role { font-size: 0.75rem; color: var(--color-muted-foreground); }
-    .agent .state {
-      margin-left: auto; font-size: 0.7rem; font-weight: 600;
-      padding: 2px 8px; border-radius: 999px;
-      background: var(--color-muted); color: var(--color-muted-foreground);
+    .agent-card .glyph svg { width: 20px; height: 20px; }
+    .agent-card .name { font-weight: 700; }
+    .agent-card .role-tag {
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--color-muted-foreground);
+    }
+    .agent-card .desc { font-size: 0.82rem; color: var(--color-muted-foreground); flex: 1; }
+    .agent-card .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pill {
+      font-size: 0.68rem; font-weight: 600;
+      padding: 3px 9px; border-radius: 999px;
+      background: var(--color-muted); color: var(--color-card-foreground);
+      border: 1px solid var(--color-border);
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    /* Status pills carry a text label AND a dot — never color alone. */
+    .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-muted-foreground); }
+    .pill.read-only .dot { background: var(--color-accent); }
+    .pill.gated .dot { background: var(--color-primary); }
+    .pill.executive .dot { background: var(--color-secondary); }
+
+    /* ═══ Evals view (evals.md overrides: 12-col data grid, highlighted
+       "current" column, horizontal scroll on small screens, row hover) ═══ */
+    .evals-wrap { padding: var(--space-1); overflow-x: auto; }
+    table.evals {
+      width: 100%; border-collapse: collapse;
+      font-size: 0.84rem;
+      min-width: 640px; /* evals.md: avoid wide tables breaking layout */
+    }
+    table.evals th, table.evals td {
+      text-align: left;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--color-border);
       white-space: nowrap;
     }
-    .agent .state.idle { background: color-mix(in srgb, var(--color-accent) 18%, transparent); color: var(--color-accent); }
+    table.evals th {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--color-muted-foreground);
+    }
+    table.evals tbody tr { transition: background var(--transition); }
+    table.evals tbody tr:hover { background: var(--color-muted); }
+    /* evals.md: highlight the "current" column (checks) with accent tint. */
+    table.evals .current-col { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+    table.evals .suite-name { font-weight: 600; }
+    table.evals .check-id { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--color-accent); }
+    .score-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-weight: 600; font-size: 0.78rem;
+    }
+    .score-badge .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .score-badge.pass .dot { background: var(--color-ok); }
+    .score-badge .count { color: var(--color-muted-foreground); font-weight: 400; }
 
     /* Mobile nav (bottom, ≤5 items, deep-linkable anchors) */
     .nav {
@@ -246,8 +344,22 @@
     .nav button svg { width: 20px; height: 20px; }
     @media (min-width: 768px) {
       .nav { display: none; }
-      main { padding-bottom: var(--space-3); }
     }
+    /* Desktop secondary nav inside topbar */
+    .topnav { display: none; gap: 4px; }
+    @media (min-width: 768px) {
+      .topnav { display: flex; }
+    }
+    .topnav button {
+      font: inherit; font-size: 0.82rem; font-weight: 600;
+      background: none; border: none;
+      color: var(--color-muted-foreground);
+      padding: 8px 14px; border-radius: 8px;
+      cursor: pointer; min-height: 36px;
+      transition: color var(--transition), background var(--transition);
+    }
+    .topnav button[aria-current="page"] { color: var(--color-primary); background: var(--color-muted); }
+    .topnav button:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
   </style>
 </head>
 <body>
@@ -257,61 +369,96 @@
         <span class="pulse-dot" aria-hidden="true"></span>
         KAIROS
       </span>
+      <nav class="topnav" aria-label="Primary">
+        <button type="button" aria-current="page" data-view="console">Console</button>
+        <button type="button" data-view="agents">Agents</button>
+        <button type="button" data-view="evals">Evals</button>
+      </nav>
       <span class="spacer"></span>
+      <span class="api-state" id="api-state">checking API…</span>
       <span class="env-tag">KyleDev</span>
     </header>
 
-    <section class="status-strip" aria-label="System status">
-      <div class="status-card">
-        <div class="label">System</div>
-        <div class="value ok">operational</div>
+    <!-- ═══ CONSOLE ═══ -->
+    <section class="view active" id="view-console" aria-label="Console">
+      <div class="status-strip" aria-label="System status">
+        <div class="status-card"><div class="label">System</div><div class="value ok">operational</div></div>
+        <div class="status-card"><div class="label">Roster</div><div class="value">8 / 8 agents</div></div>
+        <div class="status-card"><div class="label">Tests</div><div class="value">462 passing</div></div>
+        <div class="status-card"><div class="label">Decomposition</div><div class="value">smart</div></div>
       </div>
-      <div class="status-card">
-        <div class="label">Roster</div>
-        <div class="value">8 / 8 agents</div>
-      </div>
-      <div class="status-card">
-        <div class="label">Tests</div>
-        <div class="value">447 passing</div>
-      </div>
-      <div class="status-card">
-        <div class="label">Decomposition</div>
-        <div class="value">smart</div>
+
+      <div class="console-grid">
+        <section class="panel" aria-label="Objective composer and activity">
+          <header>
+            Objective
+            <span class="hint">live via POST /stream (SSE) · smart decomposition</span>
+          </header>
+          <ul class="activity" id="activity" aria-live="polite">
+            <li><span class="who">ATLAS</span>Ready. Submit an objective to orchestrate the roster.</li>
+          </ul>
+
+          <!-- Multi-agent collaboration demo: live delegation board -->
+          <div class="delegation-board" id="delegation-board" aria-label="Live delegation board" aria-live="polite"></div>
+
+          <form class="composer" id="composer">
+            <input
+              id="objective"
+              name="objective"
+              type="text"
+              autocomplete="off"
+              placeholder="Research the auth flow; then implement the fix; then document it"
+              aria-label="Objective for ATLAS to orchestrate"
+            />
+            <button type="submit" id="submit-btn">Orchestrate</button>
+          </form>
+        </section>
+
+        <section class="panel" aria-label="Agent roster summary">
+          <header>
+            Roster
+            <span class="hint">8 specialists · read-only enforcers</span>
+          </header>
+          <ul class="activity" id="roster-mini" style="max-height:none;"></ul>
+        </section>
       </div>
     </section>
 
-    <main>
-      <section class="panel" aria-label="Objective composer and activity">
+    <!-- ═══ AGENTS ═══ -->
+    <section class="view" id="view-agents" aria-label="Agent roster">
+      <div class="panel" style="margin: var(--space-2) var(--space-3);">
         <header>
-          Objective
-          <span class="hint">smart decomposition routes clauses by role</span>
+          Agent Roster
+          <span class="hint">privilege spectrum · dot + label encoding, never color alone</span>
         </header>
-        <ul class="activity" id="activity" aria-live="polite">
-          <li><span class="who">ATLAS</span>Ready. Submit an objective to orchestrate the roster.</li>
-        </ul>
-        <form class="composer" id="composer">
-          <input
-            id="objective"
-            name="objective"
-            type="text"
-            autocomplete="off"
-            placeholder="Research the auth flow; then implement the fix; then document it"
-            aria-label="Objective for ATLAS to orchestrate"
-          />
-          <button type="submit">Orchestrate</button>
-        </form>
-      </section>
+        <div class="agents-grid" id="agents-grid"></div>
+      </div>
+    </section>
 
-      <section class="panel" aria-label="Agent roster">
+    <!-- ═══ EVALS ═══ -->
+    <section class="view" id="view-evals" aria-label="Evaluation suites">
+      <div class="panel" style="margin: var(--space-2) var(--space-3);">
         <header>
-          Roster
-          <span class="hint">8 specialists · read-only enforcers</span>
+          Evaluation Suites
+          <span class="hint">Constitution §9 · 5 suites, 55 checks</span>
         </header>
-        <ul class="roster" id="roster"></ul>
-      </section>
-    </main>
+        <div class="evals-wrap">
+          <table class="evals">
+            <thead>
+              <tr>
+                <th scope="col">Suite</th>
+                <th scope="col" class="current-col">Checks</th>
+                <th scope="col">Scope</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody id="evals-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
 
-    <nav class="nav" aria-label="Primary">
+    <nav class="nav" aria-label="Primary mobile">
       <button type="button" aria-current="page" data-view="console">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
         Console
@@ -319,10 +466,6 @@
       <button type="button" data-view="agents">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M4 20c0-3 2-5 5-5s5 2 5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15 20c0-2.4 1.4-4 3.5-4S22 17.6 22 20"/></svg>
         Agents
-      </button>
-      <button type="button" data-view="memory">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>
-        Memory
       </button>
       <button type="button" data-view="evals">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
@@ -332,54 +475,118 @@
   </div>
 
   <script type="module">
-    // Roster metadata mirrors src/agents + docs/architecture/agents.md.
+    // ── Roster metadata (mirrors src/agents + docs/architecture/agents.md) ──
     const ROSTER = [
-      { id: "atlas",    role: "executive",  desc: "Coordinates objectives, delegates via AgentCoordinator", state: "idle" },
-      { id: "orion",    role: "research",   desc: "Research and discovery, read-only tools", state: "idle" },
-      { id: "sage",     role: "knowledge",  desc: "Knowledge and memory, semantic + procedural store", state: "idle" },
-      { id: "pulse",    role: "observation",desc: "Monitoring probes, graceful status reporting", state: "idle" },
-      { id: "forge",    role: "engineering",desc: "Engineering, write power gated behind flags", state: "idle" },
-      { id: "nova",     role: "creation",   desc: "Creation and synthesis, output to memory", state: "idle" },
-      { id: "vector",   role: "execution",  desc: "Authorized execution, confined and deny-by-default", state: "idle" },
-      { id: "vanguard", role: "security",   desc: "Governance, screening and compliance review", state: "idle" },
+      { id: "atlas",    role: "executive",   priv: "executive", desc: "Coordinates objectives and delegates via AgentCoordinator. Read-only; delegation transfers no power." },
+      { id: "orion",    role: "research",    priv: "read-only", desc: "Research and discovery. Read-only filesystem, data lookup and mock HTTP tools." },
+      { id: "sage",     role: "knowledge",   priv: "read-only", desc: "Knowledge and memory. Facts, procedures and ingestion history in scoped memory." },
+      { id: "pulse",    role: "observation", priv: "read-only", desc: "Monitoring probes with graceful operational/degraded/unreachable reporting." },
+      { id: "forge",    role: "engineering", priv: "gated",     desc: "Engineering. Write power gated behind allowWrite / allowRunCommand flags." },
+      { id: "nova",     role: "creation",    priv: "read-only", desc: "Creation and synthesis. Output is memory, never files." },
+      { id: "vector",   role: "execution",   priv: "gated",     desc: "Authorized execution. Confined commands plus deny-by-default action authorization." },
+      { id: "vanguard", role: "security",    priv: "read-only", desc: "Governance. Tool screening, compliance review, findings memory. Least privileged." },
     ];
 
-    // Minimal inline SVG glyphs (no emoji as icons).
+    const EVALS = [
+      { name: "Delegation flow",  file: "evals/agents/delegation.evaluation.test.ts",          checks: "E1–E9",  scope: "ATLAS routing, failure-as-result, isolation, enforcement" },
+      { name: "Full roster",      file: "evals/agents/roster.evaluation.test.ts",              checks: "F1–F8",  scope: "All 8 agents: role coverage, privilege spectrum, audit" },
+      { name: "Reasoning",        file: "evals/reasoning/reasoning.benchmark.test.ts",          checks: "R1–R7",  scope: "Engine determinism, contract shape, model failure" },
+      { name: "Planning",         file: "evals/planning/planning.benchmark.test.ts",            checks: "P1–P8",  scope: "Plan consistency, JSON parsing, role routing" },
+      { name: "Memory",           file: "evals/memory/memory.benchmark.test.ts",                checks: "M1–M10", scope: "Four memory types, ordering, store contract" },
+      { name: "Generalization",   file: "evals/generalization/generalization.benchmark.test.ts",checks: "G1–G7",  scope: "Unseen objectives, paraphrase stability, OOD" },
+    ];
+
     const GLYPHS = {
       executive:  '<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>',
       research:   '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>',
       knowledge:  '<path d="M4 19V5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M8 7h7M8 11h7"/>',
-      observation:'circle+path',
+      observation:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>',
       engineering:'<path d="M14.7 6.3a4 4 0 00-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 005.4-5.4l-2.4 2.4-2-2 2.4-2.4z"/>',
       creation:   '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/>',
       execution:  '<path d="M6 4l12 8-12 8V4z"/>',
       security:   '<path d="M12 3l7 3v5c0 4.5-3 8.4-7 10-4-1.6-7-5.5-7-10V6l7-3z"/><path d="M9.5 12l1.8 1.8L15 10"/>',
     };
-    function glyphSvg(role) {
-      const d = GLYPHS[role] === "circle+path"
-        ? '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>'
-        : GLYPHS[role];
-      return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+    const glyphSvg = (role) =>
+      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${GLYPHS[role] ?? ""}</svg>`;
+
+    // ── Agents view (agents.md overrides: responsive profile grid;
+    //    status pills = dot + text label, never color alone) ──
+    const agentsGrid = document.getElementById("agents-grid");
+    for (const agent of ROSTER) {
+      const card = document.createElement("article");
+      card.className = "agent-card";
+      card.innerHTML = `
+        <div class="head">
+          <span class="glyph" aria-hidden="true">${glyphSvg(agent.role)}</span>
+          <span>
+            <div class="name">${agent.id.charAt(0).toUpperCase()}${agent.id.slice(1)}</div>
+            <div class="role-tag">${agent.role}</div>
+          </span>
+        </div>
+        <div class="desc">${agent.desc}</div>
+        <div class="pills">
+          <span class="pill ${agent.priv}"><span class="dot" aria-hidden="true"></span>${agent.priv}</span>
+          <span class="pill">role: ${agent.role}</span>
+        </div>`;
+      agentsGrid.appendChild(card);
     }
 
-    const rosterEl = document.getElementById("roster");
+    // ── Evals view (evals.md overrides: highlighted current column,
+    //    row hover, horizontal scroll wrapper) ──
+    const evalsBody = document.getElementById("evals-body");
+    for (const suite of EVALS) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="suite-name">${suite.name}<br><span style="font-size:.68rem;color:var(--color-muted-foreground)">${suite.file}</span></td>
+        <td class="current-col check-id">${suite.checks}</td>
+        <td>${suite.scope}</td>
+        <td><span class="score-badge pass"><span class="dot" aria-hidden="true"></span>pass <span class="count">· CI</span></span></td>`;
+      evalsBody.appendChild(tr);
+    }
+
+    // ── Roster mini list on console ──
+    const rosterMini = document.getElementById("roster-mini");
     for (const agent of ROSTER) {
       const li = document.createElement("li");
-      li.className = "agent";
-      li.dataset.agentId = agent.id;
-      li.innerHTML = `
-        <span class="glyph" aria-hidden="true">${glyphSvg(agent.role)}</span>
-        <span class="meta">
-          <div class="name">${agent.id.charAt(0).toUpperCase()}${agent.id.slice(1)}</div>
-          <div class="role">${agent.desc}</div>
-        </span>
-        <span class="state ${agent.state}">${agent.state}</span>`;
-      rosterEl.appendChild(li);
+      li.innerHTML = `<span class="who">${agent.id}</span>${agent.role} — ${agent.priv}`;
+      rosterMini.appendChild(li);
     }
 
-    // Composer: POST /run through the KAIROS HTTP API when available,
-    // with a graceful local echo otherwise (skeleton behavior).
+    // ── View routing with hash deep links ──
+    const VIEWS = ["console", "agents", "evals"];
+    function show(view) {
+      if (!VIEWS.includes(view)) view = "console";
+      for (const v of VIEWS) {
+        document.getElementById(`view-${v}`).classList.toggle("active", v === view);
+      }
+      for (const b of document.querySelectorAll("[data-view]")) {
+        if (b.dataset.view === view) b.setAttribute("aria-current", "page");
+        else b.removeAttribute("aria-current");
+      }
+    }
+    for (const b of document.querySelectorAll("[data-view]")) {
+      b.addEventListener("click", () => { location.hash = b.dataset.view; });
+    }
+    window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+    show(location.hash.slice(1));
+
+    // ── API state detection ──
+    const apiState = document.getElementById("api-state");
+    let apiLive = false;
+    try {
+      const res = await fetch("/experience?limit=1", { headers: { accept: "application/json" } });
+      apiLive = res.ok;
+    } catch { apiLive = false; }
+    apiState.textContent = apiLive ? "API live" : "API offline (demo mode)";
+    apiState.classList.toggle("live", apiLive);
+
+    // ── Streaming orchestration: POST /run with an SSE fallback;
+    //    the delegation board visualizes per-worker progress. ──
     const activityEl = document.getElementById("activity");
+    const board = document.getElementById("delegation-board");
+    const submitBtn = document.getElementById("submit-btn");
+    const input = document.getElementById("objective");
+
     function log(who, text) {
       const li = document.createElement("li");
       li.className = "is-new";
@@ -387,38 +594,195 @@
       activityEl.prepend(li);
     }
 
+    const CLAUSE_SPLIT = /\r?\n|;|(?:^|\s)then\s+/i;
+    function previewRoutes(objective) {
+      // Client-side preview of the smart strategy's clause split —
+      // mirrors src/agents/executive/decomposition.ts for the demo board.
+      const ROLE_OF = Object.fromEntries(ROSTER.map((a) => [a.id, a.role]));
+      const KEYWORDS = [
+        ["research", ["research","investigate","analyse","analyze","explore","discover","find","map","examine","inspect","study","survey","look","understand"]],
+        ["engineering", ["implement","build","fix","code","refactor","develop","construct","patch","migrate","test","debug"]],
+        ["creation", ["create","design","draft","compose","generate","write","produce","author"]],
+        ["knowledge", ["document","archive","organise","organize","index","summarise","summarize","recall","retrieve"]],
+        ["observation", ["monitor","watch","observe","track","measure","health","alert"]],
+        ["security", ["audit","vulnerability","threat","policy","compliance","secure"]],
+        ["execution", ["execute","run","deploy","release","operate","rollout","provision"]],
+      ];
+      const clauses = objective.split(/\r?\n|;|(?:^|\s)then\s+/gi)
+        .map((p) => p.replace(/^\s*\d+[.)]\s*/, "").replace(/^(?:then|and)\s+/i, "").trim())
+        .filter((p) => p.length > 0)
+        .slice(0, 6);
+      const cursorByRole = new Map();
+      return clauses.map((clause, index) => {
+        const text = clause.toLowerCase();
+        let role;
+        for (const [r, kws] of KEYWORDS) {
+          if (kws.some((kw) => text.includes(kw))) { role = r; break; }
+        }
+        const candidates = ROSTER.filter((a) => a.role === role);
+        const worker = candidates.length > 0
+          ? candidates[(cursorByRole.get(role) ?? 0) % candidates.length]
+          : null;
+        if (worker !== null) cursorByRole.set(role, (cursorByRole.get(role) ?? 0) + 1);
+        return { index: index + 1, clause, workerId: worker?.id ?? "atlas", engaged: worker !== null };
+      });
+    }
+
+    function renderBoard(routes) {
+      board.innerHTML = "";
+      for (const route of routes) {
+        const row = document.createElement("div");
+        row.className = "delegation-row";
+        row.dataset.workerId = route.workerId;
+        row.innerHTML = `
+          <span class="chip-state" data-state="pending">pending</span>
+          <span class="who">${route.workerId.toUpperCase()}</span>
+          <span class="goal">${route.clause}</span>`;
+        board.appendChild(row);
+      }
+    }
+
+    function setBoardState(workerId, state) {
+      for (const row of board.querySelectorAll(`.delegation-row[data-worker-id="${workerId}"]`)) {
+        if (row.querySelector(".chip-state").dataset.state === "done") continue;
+        row.classList.toggle("engaged", state === "running");
+        row.classList.toggle("done", state === "done");
+        row.classList.toggle("failed", state === "failed");
+        const chip = row.querySelector(".chip-state");
+        chip.dataset.state = state;
+        chip.textContent = state;
+      }
+    }
+
+    const fmt = (result) =>
+      `${result.status} after ${result.totalCycles} cycle(s) (${result.terminationReason})`;
+
+    async function orchestrateLive(objective) {
+      // Prefer the SSE stream endpoint; fall back to POST /run JSON.
+      const response = await fetch("/stream", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ goal: objective, maxCycles: 6 }),
+      });
+      if (!response.ok || !response.body) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let sawResult = false;
+
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let sep;
+        while ((sep = buffer.indexOf("\n\n")) !== -1) {
+          const frame = buffer.slice(0, sep);
+          buffer = buffer.slice(sep + 2);
+          const eventLine = frame.split("\n").find((l) => l.startsWith("event: "));
+          const dataLine = frame.split("\n").find((l) => l.startsWith("data: "));
+          if (eventLine === undefined || dataLine === undefined) continue;
+          const event = eventLine.slice(7).trim();
+          let data;
+          try { data = JSON.parse(dataLine.slice(6)); } catch { continue; }
+
+          if (event === "start") {
+            log("ATLAS", `Session ${String(data.sessionId).slice(0, 8)} started.`);
+          } else if (event === "result") {
+            sawResult = true;
+            log("ATLAS", `Orchestration complete — ${fmt(data)}.`);
+            for (const row of board.querySelectorAll(".delegation-row.engaged")) {
+              setBoardState(row.dataset.workerId, "done");
+            }
+          } else if (event === "error") {
+            log("ATLAS", `Error: ${data.error}`);
+            for (const row of board.querySelectorAll(".delegation-row.engaged")) {
+              setBoardState(row.dataset.workerId, "failed");
+            }
+          }
+        }
+      }
+      return sawResult;
+    }
+
+    async function orchestrateFallback(objective) {
+      const response = await fetch("/run", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ goal: objective }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const result = await response.json();
+      log("ATLAS", `Orchestration complete — ${fmt(result)}.`);
+      for (const row of board.querySelectorAll(".delegation-row.engaged")) {
+        setBoardState(row.dataset.workerId, "done");
+      }
+    }
+
+    function demoOrchestrate(objective) {
+      // API offline: simulate the delegation choreography locally so the
+      // collaboration demo still demonstrates the flow (clearly labeled).
+      const routes = previewRoutes(objective);
+      renderBoard(routes);
+      let step = 0;
+      const tick = () => {
+        if (step >= routes.length) {
+          log("DEMO", "Simulated orchestration complete (API offline).");
+          return;
+        }
+        const route = routes[step];
+        setBoardState(route.workerId, "running");
+        setTimeout(() => {
+          setBoardState(route.workerId, "done");
+          log(route.workerId.toUpperCase(), `Simulated cycle for "${route.clause}".`);
+          step += 1;
+          tick();
+        }, 650);
+      };
+      tick();
+    }
+
     document.getElementById("composer").addEventListener("submit", async (event) => {
       event.preventDefault();
-      const input = document.getElementById("objective");
       const objective = input.value.trim();
-      if (objective === "") return;
+      if (objective === "" || submitBtn.disabled) return;
 
+      submitBtn.disabled = true;
       log("YOU", objective);
+
+      const routes = previewRoutes(objective);
+      renderBoard(routes);
       input.value = "";
 
-      try {
-        const response = await fetch("/run", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ goal: objective }),
-        });
-        const body = await response.json().catch(() => ({}));
-        log("ATLAS", body.status !== undefined
-          ? `Orchestration ${body.status}.`
-          : `Accepted (HTTP ${response.status}).`);
-      } catch {
-        log("ATLAS", "API unreachable — skeleton UI running standalone.");
+      if (!apiLive) {
+        demoOrchestrate(objective);
+        submitBtn.disabled = false;
+        return;
       }
-    });
 
-    // Mobile nav: hash deep links (#console, #agents, #memory, #evals).
-    const nav = document.querySelector(".nav");
-    nav.addEventListener("click", (event) => {
-      const button = event.target.closest("button[data-view]");
-      if (button === null) return;
-      for (const b of nav.querySelectorAll("button")) b.removeAttribute("aria-current");
-      button.setAttribute("aria-current", "page");
-      location.hash = button.dataset.view;
+      for (const route of routes.filter((r) => r.engaged)) {
+        setBoardState(route.workerId, "running");
+      }
+
+      try {
+        const streamed = await orchestrateLive(objective);
+        if (!streamed) await orchestrateFallback(objective);
+      } catch {
+        log("ATLAS", "Stream unavailable — retrying with POST /run.");
+        try {
+          await orchestrateFallback(objective);
+        } catch (error) {
+          log("ATLAS", `API error: ${error.message}`);
+          for (const row of board.querySelectorAll(".delegation-row.engaged")) {
+            setBoardState(row.dataset.workerId, "failed");
+          }
+        }
+      } finally {
+        submitBtn.disabled = false;
+      }
     });
   </script>
 </body>

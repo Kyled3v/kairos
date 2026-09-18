@@ -13,7 +13,28 @@ All notable KAIROS changes are recorded here.
 - AGI vision
 - Architecture specification
 - Agent development instructions
-- Living project state## [0.1.0] - 2026-09-18 (batch 6)
+- Living project state## [0.1.0] - 2026-09-18 (batch 7)
+
+### Changed
+
+- Web console upgraded from static skeleton to live orchestration:
+  SSE-first streaming via POST /stream (start/result/error events) with
+  automatic POST /run JSON fallback; API liveness indicator in the
+  topbar; hash-routed Console/Agents/Evals views (desktop top nav +
+  mobile bottom nav sharing one routing source).
+- New live delegation board: client-side preview of ATLAS's smart
+  strategy (clause split + keyword→role routing mirroring
+  decomposition.ts) animating each worker chip through
+  pending/running/done/failed as SSE events land — a multi-agent
+  collaboration demo that also functions offline in a clearly labeled
+  simulated mode.
+- Agents and Evals views follow generated ui-ux-pro-max page overrides
+  (design-system/kairos/pages/agents.md, pages/evals.md): responsive
+  profile-card grid with dot+label privilege pills (never color alone),
+  highlighted checks column, row hover, and a horizontal-scroll wrapper
+  so wide eval tables never break layout.
+
+## [0.1.0] - 2026-09-18 (batch 6)
 
 ### Added
 

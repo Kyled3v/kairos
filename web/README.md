@@ -1,7 +1,8 @@
-# KAIROS Web Console (Phase 4 skeleton)
+# KAIROS Web Console (Phase 4)
 
-The public KAIROS web interface skeleton. **Phase 4: Web interface —
-skeleton in place.**
+The public KAIROS web interface. **Phase 4: Web interface — skeleton
+complete with live streaming, multi-view navigation and a delegation
+demo.**
 
 ## Design system
 
@@ -39,16 +40,45 @@ npx serve web
 # same origin; run the KAIROS HTTP server and point a proxy at it.
 ```
 
+## Views & page overrides
+
+Three hash-deep-linked views (`#console`, `#agents`, `#evals`), each
+backed by a persisted page override from the ui-ux-pro-max skill:
+
+| View | Override file | Key rules applied |
+|---|---|---|
+| **Console** | `MASTER.md` | Streaming activity log, delegation board, composer |
+| **Agents** | `pages/agents.md` | Responsive profile card grid (≤1200px); status pills carry a dot **and** a text label — never color alone |
+| **Evals** | `pages/evals.css` rules inline | Highlighted "checks" column (accent tint), row hover, horizontal-scroll wrapper so wide tables never break layout |
+
+## Live streaming
+
+The composer prefers `POST /stream` (Server-Sent Events) and falls back
+to `POST /run` JSON when the stream is unavailable. SSE events handled:
+
+- `start` — `{ sessionId, goal }` → logged as session start
+- `result` — full `MultiCycleResult` → logged with status/cycles/termination
+- `error` — `{ error }` → logged; delegation rows flip to `failed`
+
+The **delegation board** previews ATLAS's smart-strategy routing
+client-side (clause split + keyword→role matching mirroring
+`src/agents/executive/decomposition.ts`) and animates each worker chip
+through `pending → running → done/failed` as events arrive.
+
+## Demo mode
+
+When the API is unreachable (topbar shows "API offline (demo mode)"),
+submitting an objective runs a **clearly labeled simulated** delegation
+choreography: the same routing preview drives the board so the flow is
+demonstrable without a backend.
+
 ## API contract
 
-The skeleton composer expects the existing KAIROS HTTP server contract:
+The console expects the existing KAIROS HTTP server contract:
 
-- `POST /run` — `{ goal: string }` → orchestration result JSON
-- `GET /experience?sessionId=<agentId>` — per-agent audit trail
-- `GET /memory?...` — memory inspection
-
-The console degrades gracefully when the API is unreachable: the
-activity panel echoes the objective and reports the skeleton state.
+- `POST /stream` — `{ goal, maxCycles? }` → SSE (`start`, `result`, `done`, `error`)
+- `POST /run` — `{ goal, maxCycles?, decompose?, sessionId? }` → `MultiCycleResult` JSON (fallback)
+- `GET /experience?sessionId=<agentId>&limit=1` — API liveness check + per-agent audit trails
 
 ## Accessibility & interaction rules applied
 
