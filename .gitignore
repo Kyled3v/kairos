@@ -10,3 +10,10 @@ dist/
 build/
 .next/
 .DS_Store
+
+# Build/output artifacts
+tsconfig.tsbuildinfo
+*-output.txt
+test-output.txt
+dump-*.txt
+inspect-dump*.txt

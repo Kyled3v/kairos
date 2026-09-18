@@ -1,8 +1,0 @@
-node.exe : npm notice run @kyledev/kairos@0.1.0 typecheck
-At line:1 char:1
-+ & "C:\Program Files\nodejs/node.exe" "C:\Users\rtmatsie\AppData\Roami ...
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (npm notice run ...0.1.0 typecheck:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-npm notice run tsc --noEmit

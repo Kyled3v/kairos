@@ -14,3 +14,48 @@ All notable KAIROS changes are recorded here.
 - Architecture specification
 - Agent development instructions
 - Living project state
+
+## [0.1.0] - 2026-09-18
+
+### Added
+
+- ORION specialist agent (research and discovery) — first named agent on the
+  generic agent infrastructure: read-only research toolset, policy-enforced
+  permissions, scoped semantic memory for findings, episodic session history,
+  audited tool calls via ToolCallCollector (ADR-001). Exported from the
+  public SDK as OrionAgent.
+- ATLAS specialist agent (executive) — coordinates objectives and delegates
+  to specialists via AgentCoordinator: auditable DelegationResults, an
+  orchestrate() aggregator (complete/partial/failed/empty status), directives
+  over the message bus, objectives as semantic memory and delegation outcomes
+  as episodic memory. Exported from the public SDK as AtlasAgent.
+- AgentCoordinator and SupervisorAgent now accept any structural
+  DelegatableAgent (KairosAgent or specialist composition agents).
+- Shared assertNoWriteExecuteCapability tool-boundary helper and
+  DelegatableAgent type in src/agents/tool-boundary.ts.
+- Smart orchestrator strategy: AtlasAgent.orchestrate() now decomposes
+  objectives without a caller-provided function — deterministic clause
+  splitting (semicolons/newlines/"then"/numbered items) plus keyword→role
+  routing across registered workers (round-robin per role), with an
+  optional "single" mode. Explicit strategies still take precedence
+  (src/agents/executive/decomposition.ts, exported from the SDK).
+- AgentCoordinator.listAgents() exposing registered agents for strategy
+  construction.
+- KairosAgent: additive `toolCallCollector` option so specialist agents
+  record tool invocations into experience records without unsafe casts.
+- ADR-001 documenting the named specialist agent composition pattern.
+
+### Fixed
+
+- HTTP server: GET /experience/analyse was unreachable because the
+  /experience/:id route pattern shadowed it; analyse is now matched first.
+- HTTP server: restored a corrupted line in the analyse handler that broke
+  the TypeScript build (typecheck now passes cleanly).
+
+### Changed
+
+- Synchronized KAIROS_STATE.md and ROADMAP.md with the actual implemented
+  state (cognitive runtime, model abstraction, memory, tools, security,
+  HTTP API, SDK are implemented; documentation previously claimed otherwise).
+- Removed stray dump/output artifacts from the repository and added ignore
+  patterns for them.

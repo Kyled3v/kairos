@@ -1,15 +1,18 @@
-import type { KairosAgent } from "./agent.js";
+import type { DelegatableAgent } from "./tool-boundary.js";
 import type { DelegationRequest, DelegationResult } from "./coordination-types.js";
 
 /**
  * Registers agents and routes delegate() calls to the target agent.
  * Delegation is synchronous — the coordinator awaits the worker result
  * before returning. No distributed messaging or queue involved.
+ *
+ * Accepts any DelegatableAgent: plain KairosAgent instances as well as
+ * named specialist agents that compose one (OrionAgent, AtlasAgent, ...).
  */
 export class AgentCoordinator {
-  private readonly agents = new Map<string, KairosAgent>();
+  private readonly agents = new Map<string, DelegatableAgent>();
 
-  register(agent: KairosAgent): void {
+  register(agent: DelegatableAgent): void {
     if (this.agents.has(agent.identity.id)) {
       throw new Error("Agent already registered with coordinator: " + agent.identity.id);
     }
@@ -26,6 +29,11 @@ export class AgentCoordinator {
 
   listAgentIds(): readonly string[] {
     return [...this.agents.keys()];
+  }
+
+  /** All registered agents (including executives) in registration order. */
+  listAgents(): readonly DelegatableAgent[] {
+    return [...this.agents.values()];
   }
 
   async delegate(request: DelegationRequest): Promise<DelegationResult> {

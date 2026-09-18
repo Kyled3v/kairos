@@ -145,6 +145,12 @@ export type {
 export { KairosAgent } from "./agents/agent.js";
 export { AgentRegistry } from "./agents/identity.js";
 export { AgentMessageBus } from "./agents/message-bus.js";
+export { OrionAgent } from "./agents/research/orion-agent.js";
+export { AtlasAgent } from "./agents/executive/atlas-agent.js";
+export {
+  createSmartStrategy,
+  splitObjectiveIntoClauses,
+} from "./agents/executive/decomposition.js";
 
 export type {
   AgentIdentity,
@@ -154,6 +160,19 @@ export type {
 export type {
   KairosAgentOptions,
 } from "./agents/agent.js";
+
+export type {
+  OrionAgentOptions,
+} from "./agents/research/orion-agent.js";
+
+export type {
+  AtlasAgentOptions,
+  OrchestrationOutcome,
+} from "./agents/executive/atlas-agent.js";
+
+export type {
+  SmartSubTask,
+} from "./agents/executive/decomposition.js";
 
 // ── HTTP server ───────────────────────────────────────────────────────────────
 export { createKairosServer } from "./server/http-server.js";

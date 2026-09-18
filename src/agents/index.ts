@@ -5,3 +5,5 @@ export * from "./agent.js";
 export * from "./coordination-types.js";
 export * from "./coordinator.js";
 export * from "./supervisor.js";
+export * from "./research/index.js";
+export * from "./executive/index.js";

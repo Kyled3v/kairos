@@ -1,4 +1,4 @@
-import type { KairosAgent } from "./agent.js";
+import type { DelegatableAgent } from "./tool-boundary.js";
 import { AgentCoordinator } from "./coordinator.js";
 import type { DelegationResult } from "./coordination-types.js";
 
@@ -27,8 +27,8 @@ export class SupervisorAgent {
   private readonly coordinator: AgentCoordinator;
 
   constructor(
-    private readonly supervisor: KairosAgent,
-    workers: readonly KairosAgent[],
+    private readonly supervisor: DelegatableAgent,
+    workers: readonly DelegatableAgent[],
   ) {
     this.coordinator = new AgentCoordinator();
     this.coordinator.register(supervisor);

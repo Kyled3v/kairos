@@ -1,6 +1,6 @@
 # Roadmap
 
-## Phase 0 — Foundation
+## Phase 0 ï¿½ Foundation
 
 - [x] Repository
 - [x] Git
@@ -8,51 +8,51 @@
 - [x] Constitution
 - [x] AGI vision
 - [x] Development governance
-- [ ] Dependency registry
-- [ ] CI validation
+- [x] Dependency registry
+- [x] CI validation
 
-## Phase 1 — Core Intelligence
+## Phase 1 â€” Core Intelligence
 
-- [ ] Runtime
-- [ ] Model abstraction
-- [ ] Context management
-- [ ] Goal system
-- [ ] Reasoning loop
-- [ ] Planning
-- [ ] Reflection
+- [x] Runtime
+- [x] Model abstraction
+- [x] Context management
+- [x] Goal system
+- [x] Reasoning loop
+- [x] Planning
+- [x] Reflection
 
-## Phase 2 — Memory & Knowledge
+## Phase 2 â€” Memory & Knowledge
 
-- [ ] Working memory
-- [ ] Semantic memory
-- [ ] Episodic memory
-- [ ] Procedural memory
+- [x] Working memory
+- [x] Semantic memory
+- [x] Episodic memory
+- [x] Procedural memory
 - [ ] Knowledge ingestion
 - [ ] Retrieval
 - [ ] Source validation
 
-## Phase 3 — Agents & Tools
+## Phase 3 â€” Agents & Tools
 
-- [ ] ATLAS
-- [ ] ORION
+- [x] ATLAS
+- [x] ORION
 - [ ] NOVA
 - [ ] FORGE
 - [ ] SAGE
 - [ ] PULSE
 - [ ] VECTOR
 - [ ] VANGUARD
-- [ ] Tool permissions
+- [x] Tool permissions
 - [ ] Sandboxing
 
-## Phase 4 — Public KAIROS
+## Phase 4 â€” Public KAIROS
 
-- [ ] API
+- [x] API
 - [ ] Web interface
 - [ ] Accounts
-- [ ] Usage controls
+- [x] Usage controls
 - [ ] Public agent creation
 
-## Phase 5 — AGI Research
+## Phase 5 â€” AGI Research
 
 - [ ] General intelligence benchmark
 - [ ] Long-horizon evaluation
@@ -61,7 +61,7 @@
 - [ ] Generalization research
 - [ ] Model training pipeline
 
-## Phase 6 — KyleDev Ecosystem
+## Phase 6 â€” KyleDev Ecosystem
 
 - [ ] Nexus integration
 - [ ] KDOS integration

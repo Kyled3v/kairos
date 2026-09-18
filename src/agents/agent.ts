@@ -8,6 +8,7 @@ import type { SessionOrchestratorOptions, SessionOrchestrator } from "../core/or
 import type { ExperienceStore } from "../core/experience/record.js";
 import type { MemoryStore } from "../core/memory/types.js";
 import type { MultiCycleResult } from "../core/orchestrator/types.js";
+import type { ToolCallCollector } from "../core/tools/collector.js";
 
 export interface KairosAgentOptions {
   readonly identity: AgentIdentity;
@@ -16,6 +17,8 @@ export interface KairosAgentOptions {
   readonly experienceStore?: ExperienceStore;
   readonly session?: SessionOrchestratorOptions;
   readonly messageBus?: AgentMessageBus;
+  /** Records tool invocations into experience records for this agent's sessions. */
+  readonly toolCallCollector?: ToolCallCollector;
 }
 
 /**
@@ -49,6 +52,7 @@ export class KairosAgent {
         sessionId: options.session?.sessionId ?? this.identity.id,
       },
       ...(options.experienceStore !== undefined ? { experienceStore: options.experienceStore } : {}),
+      ...(options.toolCallCollector !== undefined ? { toolCallCollector: options.toolCallCollector } : {}),
     });
   }
 

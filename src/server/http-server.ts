@@ -6,6 +6,7 @@ import { MEMORY_TYPES, type MemoryType } from "../core/memory/types.js";
 import { createKairos } from "../factory/index.js";
 import { AuthMiddleware } from "./auth.js";
 import { withSpan } from "../telemetry/index.js";
+import { ExperienceAnalyser } from "../core/experience/analyser.js";
 
 export interface KairosServerOptions {
   readonly dependencies: PipelineDependencies;
@@ -196,6 +197,33 @@ async function handleGetExperienceById(
   }
 }
 
+async function handleAnalyseExperience(
+  url: URL,
+  res: ServerResponse,
+  options: KairosServerOptions,
+): Promise<void> {
+  const query: { -readonly [K in keyof ExperienceQuery]: ExperienceQuery[K] } = {};
+  const outcomeParam = url.searchParams.get("outcome");
+  if (outcomeParam !== null) {
+    if (!isExperienceOutcome(outcomeParam)) {
+      sendJson(res, 400, { error: `Invalid outcome: ${outcomeParam}` });
+      return;
+    }
+    query.outcome = outcomeParam as ExperienceOutcome;
+  }
+  const sessionIdParam = url.searchParams.get("sessionId");
+  if (sessionIdParam !== null) query.sessionId = sessionIdParam;
+  const goalContainsParam = url.searchParams.get("goalContains");
+  if (goalContainsParam !== null) query.goalContains = goalContainsParam;
+  try {
+    const analyser = new ExperienceAnalyser(options.experienceStore);
+    const metrics = await analyser.analyse(query);
+    sendJson(res, 200, metrics);
+  } catch (error) {
+    sendJson(res, 500, { error: "Failed to analyse experience: " + (error instanceof Error ? error.message : String(error)) });
+  }
+}
+
 async function handleMemory(
   url: URL,
   res: ServerResponse,
@@ -243,7 +271,7 @@ async function handleMemory(
  *   GET  /experience        ?outcome=&goalContains=&modelProvider=&sessionId=&since=&limit= -> ExperienceRecord[]
  *   GET  /experience/:id    -> ExperienceRecord | 404
  *   GET  /memory            ?query=&type=&limit= -> Memory[]
- * No framework dependency ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â routing and JSON body parsing are handled
+ * No framework dependency ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â routing and JSON body parsing are handled
  * directly against node:http.
  */
 
@@ -337,7 +365,9 @@ export function createKairosServer(options: KairosServerOptions): Server {
         else if (req.method === "GET" && url.pathname === "/experience") { await withSpan("kairos.http", "http.experience", { "http.method": "GET", "http.path": "/experience" }, () => handleListExperience(url, res, options)); }
         else {
           const experienceIdMatch = /^\/experience\/([^/]+)$/.exec(url.pathname);
-          if (req.method === "GET" && experienceIdMatch !== null && experienceIdMatch[1] !== undefined) {
+          if (req.method === "GET" && url.pathname === "/experience/analyse") {
+            await withSpan("kairos.http", "http.experience.analyse", { "http.method": "GET", "http.path": "/experience/analyse" }, () => handleAnalyseExperience(url, res, options));
+          } else if (req.method === "GET" && experienceIdMatch !== null && experienceIdMatch[1] !== undefined) {
             await handleGetExperienceById(decodeURIComponent(experienceIdMatch[1]), res, options);
           } else if (req.method === "GET" && url.pathname === "/memory") {
             await handleMemory(url, res, options);
