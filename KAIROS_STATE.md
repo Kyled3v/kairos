@@ -49,24 +49,31 @@ Last synchronized: 2026-09-18
 - Memory system: IMPLEMENTED (working/episodic/semantic/procedural)
 - Tool system: IMPLEMENTED (registry, policy, gateway, built-ins)
 - Agent orchestration: INFRASTRUCTURE IMPLEMENTED; named specialist agents
-  ATLAS (executive, delegates via AgentCoordinator), ORION (research) and
-  SAGE (knowledge) instantiated; smart + model-backed objective
-  decomposition — NOVA/FORGE/PULSE/VECTOR/VANGUARD remaining
+  ATLAS (executive), ORION (research), SAGE (knowledge) and PULSE
+  (observation) instantiated; smart + model-backed objective decomposition
+  — NOVA/FORGE/VECTOR/VANGUARD remaining
 - Public API: IMPLEMENTED (HTTP server with auth, rate limiting, SSE)
 - Public SDK interface: IMPLEMENTED
-- AGI evaluation system: PARTIAL (experience analytics exist; benchmark
+- AGI evaluation system: PARTIAL (experience analytics plus the
+  multi-agent delegation-flow evaluation suite exist; remaining benchmark
   suites from the constitution not yet built)
 
 ## Current Priority
 
-1. Remaining named specialist agents (PULSE, FORGE, NOVA next) using the
-   composition pattern (see ADR-001)
+1. Remaining named specialist agents (FORGE, NOVA, then VECTOR/VANGUARD)
+   using the composition pattern (see ADR-001)
 2. Knowledge ingestion, retrieval and source validation (Phase 2 remainder;
    SAGE provides the agent-side storage and retrieval surface)
-3. Evaluation suites per KAIROS_CONSTITUTION.md section 9
+3. Further evaluation suites per KAIROS_CONSTITUTION.md section 9 (delegation
+   flow covered; reasoning/planning/memory benchmarks next)
 4. Tool sandboxing hardening for run-command tool
 
 ## Maintenance Notes
+
+- 2026-09-18: Instantiated PULSE (observation and monitoring specialist)
+  and added the delegation-flow evaluation suite (evals/agents) with nine
+  scored checks per Constitution section 9. 20 new tests; suite at 336
+  passing.
 
 - 2026-09-18: Added model-backed decomposition (orchestrate decomposition
   "model" with deterministic fallback) and instantiated SAGE (knowledge and

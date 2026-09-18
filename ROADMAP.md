@@ -38,7 +38,7 @@
 - [ ] NOVA
 - [ ] FORGE
 - [x] SAGE
-- [ ] PULSE
+- [x] PULSE
 - [ ] VECTOR
 - [ ] VANGUARD
 - [x] Tool permissions
@@ -55,7 +55,7 @@
 ## Phase 5 — AGI Research
 
 - [ ] General intelligence benchmark
-- [ ] Long-horizon evaluation
+- [x] Long-horizon evaluation
 - [ ] Learning experiments
 - [ ] Multimodal evaluation
 - [ ] Generalization research

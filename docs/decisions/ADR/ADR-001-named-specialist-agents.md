@@ -108,6 +108,16 @@ pipeline stages.
    batches with episodic session records. Its "knowledge" role makes it
    automatically routable by the smart strategy (document/summarise/organise
    clauses).
+3. **PULSE (observation)**: fourth specialist. Monitoring probes must be
+   resilient: checkStatus() turns failed probes into degraded/unreachable
+   reports instead of exceptions, because a monitor that throws is itself a
+   failure mode. read-file is deliberately excluded from PULSE's toolset —
+   it observes structure, not contents. Its "observation" role makes
+   monitor/track/watch clauses route to it automatically.
+4. **Delegation evaluation suite**: evals/agents/delegation.evaluation.test.ts
+   scores the flow per Constitution section 9 — routing correctness, failure-
+   as-result semantics, executive exclusion, role coverage, model fallback,
+   auditability, memory isolation and read-only enforcement (E1–E9).
 
 ## Alternatives Considered
 

@@ -148,6 +148,7 @@ export { AgentMessageBus } from "./agents/message-bus.js";
 export { OrionAgent } from "./agents/research/orion-agent.js";
 export { AtlasAgent } from "./agents/executive/atlas-agent.js";
 export { SageAgent } from "./agents/knowledge/sage-agent.js";
+export { PulseAgent } from "./agents/observation/pulse-agent.js";
 export {
   createSmartStrategy,
   splitObjectiveIntoClauses,
@@ -174,6 +175,11 @@ export type {
 export type {
   SageAgentOptions,
 } from "./agents/knowledge/sage-agent.js";
+
+export type {
+  PulseAgentOptions,
+  StatusReport,
+} from "./agents/observation/pulse-agent.js";
 
 export type {
   SmartSubTask,

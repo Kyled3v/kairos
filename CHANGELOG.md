@@ -33,6 +33,15 @@ All notable KAIROS changes are recorded here.
   DelegatableAgent (KairosAgent or specialist composition agents).
 - Shared assertNoWriteExecuteCapability tool-boundary helper and
   DelegatableAgent type in src/agents/tool-boundary.ts.
+- PULSE specialist agent (observation and monitoring) — fourth named agent:
+  lightweight read-only probes, checkStatus() reporting (operational/degraded/
+  unreachable, never throws), observations as scoped episodic memory.
+  Exported from the public SDK as PulseAgent.
+- Delegation-flow evaluation suite (evals/agents/delegation.evaluation.test.ts)
+  per Constitution section 9: nine scored checks covering correct routing,
+  failure-as-result semantics, executive exclusion, role-appropriate routing
+  across the roster, model-mode fallback, audit trails, memory-scope
+  isolation, and read-only toolset enforcement.
 - SAGE specialist agent (knowledge and memory) — third named agent on the
   generic infrastructure: read-only source toolset, learnFact/learnProcedure
   (semantic + procedural memory), batch ingest with episodic session records,

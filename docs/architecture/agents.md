@@ -45,6 +45,12 @@ episodic memory — all inside its own scoped view.
 PULSE
 Observation, monitoring and environmental awareness.
 
+Status: IMPLEMENTED (see src/agents/observation/pulse-agent.ts and ADR-001).
+PULSE composes KairosAgent with lightweight read-only probes (no read-file —
+it observes structure, not contents), reports status via checkStatus(), and
+records observations as scoped episodic memory. Probes degrade gracefully:
+a failed probe yields a degraded/unreachable report, never an exception.
+
 VECTOR
 Authorized execution and operational tasks.
 
