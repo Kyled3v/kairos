@@ -1,5 +1,11 @@
 # KAIROS
 
+<p align="center">
+  <a href="https://github.com/Kyled3v/kairos/actions/workflows/ci.yml">
+    <img src="https://github.com/Kyled3v/kairos/actions/workflows/ci.yml/badge.svg" alt="CI: Typecheck &amp; Test">
+  </a>
+</p>
+
 **KyleDev Autonomous Intelligence & Reasoning Operating System**
 
 KAIROS is a KyleDev-owned, AGI-oriented intelligence platform designed to understand objectives, reason across domains, acquire and retrieve knowledge, use tools, learn from experience, coordinate specialized agents, and operate under explicit security and human-governance controls.
@@ -43,16 +49,49 @@ KAIROS is composed of:
 
 ## Agent System
 
-ATLAS — Executive intelligence  
-ORION — Research and discovery  
-NOVA — Creation and synthesis  
-FORGE — Engineering  
-SAGE — Knowledge and memory  
-PULSE — Observation and monitoring  
-VECTOR — Execution  
-VANGUARD — Security and governance
+Named specialist agents built on the generic KAIROS agent infrastructure. Each follows the same composition pattern (see `docs/decisions/ADR/ADR-001-named-specialist-agents.md`): scoped memory, observed tool gateway, experience auditing, and message-bus communication — so ATLAS can route work to any of them automatically.
+
+| Agent | Role | Status | Toolset |
+|---|---|---|---|
+| **ATLAS** | Executive intelligence | ✅ Implemented | Read-only; delegates to specialists via `AgentCoordinator` |
+| **ORION** | Research and discovery | ✅ Implemented | Read-only research tools (filesystem, data lookup, mock HTTP) |
+| **SAGE** | Knowledge and memory | ✅ Implemented | Read-only source tools; semantic + procedural memory surface |
+| **PULSE** | Observation and monitoring | ✅ Implemented | Read-only probes; graceful `operational / degraded / unreachable` reporting |
+| **FORGE** | Engineering | ✅ Implemented | Read-only by default; `allowWrite` / `allowRunCommand` unlock gated write + allowlisted shell access |
+| **NOVA** | Creation and synthesis | ⏳ Planned | — |
+| **VECTOR** | Execution | ⏳ Planned | — |
+| **VANGUARD** | Security and governance | ⏳ Planned | — |
 
 Agent responsibilities may evolve as the architecture matures. Names do not define implementation boundaries.
+
+### Delegation example
+
+```ts
+import { AtlasAgent, OrionAgent, ForgeAgent } from "@kyledev/kairos/sdk";
+
+const atlas = new AtlasAgent();
+atlas.addWorker(new OrionAgent());   // role: research
+atlas.addWorker(new ForgeAgent());   // role: engineering
+
+// No strategy function needed — smart decomposition routes by role:
+const outcome = await atlas.orchestrate(
+  "Research the auth flow; then implement the missing validation",
+);
+// outcome.decompositionMode === "smart"
+// outcome.delegationResults routed to orion + forge by role keywords
+```
+
+## Evaluation
+
+Per the Constitution (§9), claims of improvement must be supported by measurable evaluation. Reproducible evaluation suites live in `evals/`:
+
+| Suite | Checks | Scope |
+|---|---|---|
+| `evals/agents/delegation.evaluation.test.ts` | E1–E9 | ATLAS → specialist delegation: routing correctness, failure-as-result, memory isolation, read-only enforcement |
+| `evals/reasoning/reasoning.benchmark.test.ts` | R1–R7 | Reasoning engines: determinism, contract shape, confidence bounds, model failure surfacing |
+| `evals/planning/planning.benchmark.test.ts` | P1–P8 | Planning + decomposition: determinism, plan consistency, JSON parsing, fallback behavior, role routing |
+
+Run the suites with `npm test -- evals`.
 
 ## Development Rule
 

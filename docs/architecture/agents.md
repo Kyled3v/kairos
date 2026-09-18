@@ -34,6 +34,16 @@ Creation and synthesis.
 FORGE
 Software engineering and technical work.
 
+Status: IMPLEMENTED (see src/agents/engineering/forge-agent.ts and ADR-001).
+FORGE is the first specialist with write/execute capability, and that power
+is explicitly gated: the default toolset is read-only; "write-local" requires
+allowWrite: true and "execute-shell" requires allowRunCommand: true (the
+run-command tool itself only executes its strict command allowlist).
+extraTools carrying capabilities beyond the granted set are rejected at
+construction, and the policy blocks forbidden tools even if registered later.
+Engineering notes land in scoped semantic memory, build summaries in
+episodic memory, and every tool call is audited.
+
 SAGE
 Knowledge, memory and information organization.
 
@@ -87,8 +97,15 @@ Decomposition modes (implemented in AtlasAgent.orchestrate):
 - smart (default): deterministic clause splitting plus keyword-to-role
   routing across registered workers; no caller strategy required.
 - single: the whole objective routed to one eligible worker.
+- model: ModelGoalDecomposer proposes sub-goals; the deterministic
+  role router assigns workers (with smart-mode fallback when the model
+  is unavailable or output is invalid).
 - explicit strategy: a caller-provided function from objective to sub-tasks,
   taking precedence over the built-in modes.
+
+Reproducible evaluation suites cover the delegation flow (evals/agents),
+the reasoning engines (evals/reasoning) and the planning pipeline
+(evals/planning) — see the README Evaluation section.
 
 Delegation must preserve:
 

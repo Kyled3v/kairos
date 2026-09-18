@@ -15,8 +15,26 @@ All notable KAIROS changes are recorded here.
 - Agent development instructions
 - Living project state
 
-## [0.1.0] - 2026-09-18
+## [0.1.0] - 2026-09-18 (batch 3)
 
+### Added
+
+- FORGE specialist agent (engineering) — fifth named agent and the first with
+  write/execute capability, gated behind explicit flags: read-only by default,
+  allowWrite unlocks write-file, allowRunCommand unlocks the allowlisted
+  run-command tool. extraTools exceeding the granted access level are rejected
+  at construction; the policy blocks forbidden tools even if registered later.
+  Exported from the public SDK as ForgeAgent.
+- Reasoning benchmark suite (evals/reasoning/reasoning.benchmark.test.ts,
+  R1–R7): engine determinism, contract shape, confidence bounds, router
+  wiring, and model-failure surfacing.
+- Planning benchmark suite (evals/planning/planning.benchmark.test.ts,
+  P1–P8): plan determinism/consistency, model JSON parsing and fallback,
+  goal decomposition invariants, and smart-strategy role routing.
+- README polish: CI badge, agent-roster status table with per-agent toolsets,
+  delegation example, and an Evaluation section indexing the evals/ suites.
+
+## [0.1.0] - 2026-09-18
 ### Added
 
 - ORION specialist agent (research and discovery) — first named agent on the

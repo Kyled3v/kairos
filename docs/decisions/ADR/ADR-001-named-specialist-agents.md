@@ -69,6 +69,14 @@ The composition pattern has now repeated twice; the next agent (SAGE or
 PULSE) should extract a shared SpecialistAgent factory if the boilerplate
 remains identical a third time.
 
+> Note (2026-09-18): the pattern has now repeated five times (ATLAS, SAGE,
+> PULSE, FORGE). The boilerplate remains intentionally explicit per agent
+> because each specialist's security boundary differs in load-bearing ways
+> (read-only vs memory-only vs gated write/execute); a data-configured
+> factory would obscure exactly the code that enforces the boundary. The
+> shared pieces that CAN be shared (tool-boundary helper, DelegatableAgent,
+> ClauseRouter) are extracted.
+
 ## Amendment — 2026-09-18 (smart decomposition)
 
 ATLAS.orchestrate() no longer requires a caller-provided strategy. A
@@ -118,6 +126,23 @@ pipeline stages.
    scores the flow per Constitution section 9 — routing correctness, failure-
    as-result semantics, executive exclusion, role coverage, model fallback,
    auditability, memory isolation and read-only enforcement (E1–E9).
+
+## Amendment — 2026-09-18 (FORGE, write-capable specialists, benchmarks)
+
+1. **FORGE (engineering)**: fifth specialist and the first with write/execute
+   capability. The pattern extends rather than changes: capability is a
+   constructor-level grant (allowWrite unlocks write-file; allowRunCommand
+   unlocks the allowlisted run-command tool), the default toolset stays
+   read-only, extraTools exceeding the granted access level are rejected at
+   construction, and the policy blocks forbidden tools even if registered
+   later. Write/execute power is opt-in, explicit and audited — never
+   inherited.
+2. **Benchmark suites**: evals/reasoning (R1–R7: determinism, contract shape,
+   confidence bounds, router wiring, model-failure surfacing) and
+   evals/planning (P1–P8: plan determinism/consistency, model JSON parsing
+   and fallback, decomposition invariants, smart-strategy role routing)
+   extend the Constitution section 9 evaluation coverage to the reasoning
+   and planning pipelines.
 
 ## Alternatives Considered
 

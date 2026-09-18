@@ -49,26 +49,35 @@ Last synchronized: 2026-09-18
 - Memory system: IMPLEMENTED (working/episodic/semantic/procedural)
 - Tool system: IMPLEMENTED (registry, policy, gateway, built-ins)
 - Agent orchestration: INFRASTRUCTURE IMPLEMENTED; named specialist agents
-  ATLAS (executive), ORION (research), SAGE (knowledge) and PULSE
-  (observation) instantiated; smart + model-backed objective decomposition
-  — NOVA/FORGE/VECTOR/VANGUARD remaining
+  ATLAS (executive), ORION (research), SAGE (knowledge), PULSE (observation)
+  and FORGE (engineering, write/execute capability gated behind explicit
+  flags) instantiated; smart + model-backed objective decomposition
+  — NOVA/VECTOR/VANGUARD remaining
 - Public API: IMPLEMENTED (HTTP server with auth, rate limiting, SSE)
 - Public SDK interface: IMPLEMENTED
-- AGI evaluation system: PARTIAL (experience analytics plus the
-  multi-agent delegation-flow evaluation suite exist; remaining benchmark
-  suites from the constitution not yet built)
+- AGI evaluation system: PARTIAL (experience analytics, the multi-agent
+  delegation-flow suite, and the reasoning and planning benchmark suites
+  exist; memory/generalization benchmarks from the constitution not yet
+  built)
 
 ## Current Priority
 
-1. Remaining named specialist agents (FORGE, NOVA, then VECTOR/VANGUARD)
+1. Remaining named specialist agents (NOVA, then VECTOR/VANGUARD)
    using the composition pattern (see ADR-001)
 2. Knowledge ingestion, retrieval and source validation (Phase 2 remainder;
    SAGE provides the agent-side storage and retrieval surface)
-3. Further evaluation suites per KAIROS_CONSTITUTION.md section 9 (delegation
-   flow covered; reasoning/planning/memory benchmarks next)
+3. Further evaluation suites per KAIROS_CONSTITUTION.md section 9 (delegation,
+   reasoning and planning covered; memory/generalization benchmarks next)
 4. Tool sandboxing hardening for run-command tool
 
 ## Maintenance Notes
+
+- 2026-09-18: Instantiated FORGE (engineering specialist) — the first
+  write-capable specialist, gated behind explicit allowWrite/allowRunCommand
+  flags with the same triple boundary (registry omission + policy block +
+  constructor rejection). Added reasoning (R1–R7) and planning (P1–P8)
+  benchmark suites to evals/ and polished the README (CI badge, agent
+  roster table, evaluation index). 32 new tests; suite at 368 passing.
 
 - 2026-09-18: Instantiated PULSE (observation and monitoring specialist)
   and added the delegation-flow evaluation suite (evals/agents) with nine

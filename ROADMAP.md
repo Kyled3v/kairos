@@ -36,7 +36,7 @@
 - [x] ATLAS
 - [x] ORION
 - [ ] NOVA
-- [ ] FORGE
+- [x] FORGE
 - [x] SAGE
 - [x] PULSE
 - [ ] VECTOR
