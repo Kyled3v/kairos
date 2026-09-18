@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
+  <title>KAIROS Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    /* ═══ KAIROS Design System tokens (design-system/kairos/MASTER.md) ═══ */
+    :root {
+      --color-primary: #7C3AED;
+      --color-on-primary: #FFFFFF;
+      --color-secondary: #A78BFA;
+      --color-on-secondary: #0F172A;
+      --color-accent: #0891B2;
+      --color-on-accent: #000000;
+      --color-background: #FAF5FF;
+      --color-foreground: #1E1B4B;
+      --color-card: #FFFFFF;
+      --color-card-foreground: #1E1B4B;
+      --color-muted: #ECEEF9;
+      --color-muted-foreground: #475569;
+      --color-border: #DDD6FE;
+      --color-destructive: #DC2626;
+      --color-on-destructive: #FFFFFF;
+      --color-ring: #7C3AED;
+      --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+      /* Density dial 8/10 — dense dashboard scale */
+      --space-1: 8px; --space-2: 16px; --space-3: 24px;
+      --radius: 10px;
+      --transition: 180ms ease;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-background: #0F0A1E;
+        --color-foreground: #EDE9FE;
+        --color-card: #171130;
+        --color-card-foreground: #EDE9FE;
+        --color-muted: #241B45;
+        --color-muted-foreground: #A5A0C4;
+        --color-border: #3D3368;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { font-size: 16px; }
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      background: var(--color-background);
+      color: var(--color-foreground);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Layout: top bar → status strip → main grid → agent roster */
+    .app { min-height: 100vh; display: flex; flex-direction: column; }
+    .topbar {
+      display: flex; align-items: center; gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-card);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .brand {
+      display: flex; align-items: center; gap: var(--space-1);
+      font-weight: 700; letter-spacing: 0.08em;
+    }
+    .brand .pulse-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--color-primary);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+    .topbar .spacer { flex: 1; }
+    .env-tag {
+      font-size: 0.75rem; font-weight: 600;
+      color: var(--color-on-secondary);
+      background: var(--color-secondary);
+      padding: 2px 10px; border-radius: 999px;
+    }
+
+    .status-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: var(--space-1);
+      padding: var(--space-2) var(--space-3);
+    }
+    .status-card {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: var(--space-1) var(--space-2);
+    }
+    .status-card .label {
+      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--color-muted-foreground);
+    }
+    .status-card .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .status-card .value.ok::before {
+      content: ""; display: inline-block; width: 8px; height: 8px;
+      border-radius: 50%; background: var(--color-accent); margin-right: 6px;
+    }
+
+    main {
+      flex: 1; display: grid; gap: var(--space-2);
+      grid-template-columns: 1fr;
+      padding: 0 var(--space-3) var(--space-3);
+    }
+    @media (min-width: 768px) {
+      main { grid-template-columns: 1.6fr 1fr; }
+    }
+
+    .panel {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+    .panel > header {
+      padding: var(--space-1) var(--space-2);
+      border-bottom: 1px solid var(--color-border);
+      font-weight: 600; font-size: 0.9rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .panel > header .hint {
+      font-size: 0.72rem; font-weight: 400;
+      color: var(--color-muted-foreground);
+    }
+
+    /* Streaming activity log (AI-native streaming-text pattern) */
+    .activity {
+      list-style: none; margin: 0; padding: var(--space-1);
+      overflow-y: auto; flex: 1;
+      font-size: 0.85rem;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .activity li {
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: var(--color-muted);
+      color: var(--color-card-foreground);
+    }
+    .activity li .who {
+      font-weight: 600; text-transform: uppercase;
+      font-size: 0.7rem; letter-spacing: 0.05em;
+      color: var(--color-primary);
+      margin-right: 8px;
+    }
+    .activity li.is-new { animation: reveal 300ms ease both; }
+    @keyframes reveal { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .composer {
+      display: flex; gap: var(--space-1);
+      padding: var(--space-1);
+      border-top: 1px solid var(--color-border);
+    }
+    .composer input {
+      flex: 1;
+      font: inherit; font-size: 0.9rem;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+      background: var(--color-background);
+      color: var(--color-foreground);
+      min-width: 0;
+    }
+    .composer input:focus-visible,
+    .composer button:focus-visible,
+    .nav button:focus-visible {
+      outline: 2px solid var(--color-ring);
+      outline-offset: 2px;
+    }
+    .composer button {
+      font: inherit; font-weight: 600; font-size: 0.9rem;
+      background: var(--color-primary); color: var(--color-on-primary);
+      border: none; border-radius: 8px;
+      padding: 10px 18px;
+      cursor: pointer;
+      transition: filter var(--transition), transform var(--transition);
+      min-height: 44px; min-width: 44px; /* touch target */
+    }
+    .composer button:hover { filter: brightness(1.12); }
+    .composer button:active { transform: scale(0.97); }
+
+    /* Agent roster */
+    .roster { list-style: none; margin: 0; padding: var(--space-1); flex: 1; display: grid; gap: 8px; align-content: start; }
+    .agent {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      background: var(--color-background);
+    }
+    .agent .glyph {
+      width: 34px; height: 34px; flex: none;
+      display: grid; place-items: center;
+      border-radius: 8px;
+      background: var(--color-muted);
+      color: var(--color-primary);
+    }
+    .agent .glyph svg { width: 18px; height: 18px; }
+    .agent .meta { min-width: 0; }
+    .agent .name { font-weight: 600; font-size: 0.9rem; }
+    .agent .role { font-size: 0.75rem; color: var(--color-muted-foreground); }
+    .agent .state {
+      margin-left: auto; font-size: 0.7rem; font-weight: 600;
+      padding: 2px 8px; border-radius: 999px;
+      background: var(--color-muted); color: var(--color-muted-foreground);
+      white-space: nowrap;
+    }
+    .agent .state.idle { background: color-mix(in srgb, var(--color-accent) 18%, transparent); color: var(--color-accent); }
+
+    /* Mobile nav (bottom, ≤5 items, deep-linkable anchors) */
+    .nav {
+      display: flex; justify-content: space-around;
+      border-top: 1px solid var(--color-border);
+      background: var(--color-card);
+      padding: 6px 0 max(6px, env(safe-area-inset-bottom));
+      position: sticky; bottom: 0; z-index: 10;
+    }
+    .nav button {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      background: none; border: none;
+      font: inherit; font-size: 0.68rem;
+      color: var(--color-muted-foreground);
+      cursor: pointer;
+      padding: 8px 14px; border-radius: 8px;
+      min-width: 56px; min-height: 44px;
+      transition: color var(--transition), background var(--transition);
+    }
+    .nav button[aria-current="page"] { color: var(--color-primary); background: var(--color-muted); }
+    .nav button svg { width: 20px; height: 20px; }
+    @media (min-width: 768px) {
+      .nav { display: none; }
+      main { padding-bottom: var(--space-3); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <span class="brand">
+        <span class="pulse-dot" aria-hidden="true"></span>
+        KAIROS
+      </span>
+      <span class="spacer"></span>
+      <span class="env-tag">KyleDev</span>
+    </header>
+
+    <section class="status-strip" aria-label="System status">
+      <div class="status-card">
+        <div class="label">System</div>
+        <div class="value ok">operational</div>
+      </div>
+      <div class="status-card">
+        <div class="label">Roster</div>
+        <div class="value">8 / 8 agents</div>
+      </div>
+      <div class="status-card">
+        <div class="label">Tests</div>
+        <div class="value">447 passing</div>
+      </div>
+      <div class="status-card">
+        <div class="label">Decomposition</div>
+        <div class="value">smart</div>
+      </div>
+    </section>
+
+    <main>
+      <section class="panel" aria-label="Objective composer and activity">
+        <header>
+          Objective
+          <span class="hint">smart decomposition routes clauses by role</span>
+        </header>
+        <ul class="activity" id="activity" aria-live="polite">
+          <li><span class="who">ATLAS</span>Ready. Submit an objective to orchestrate the roster.</li>
+        </ul>
+        <form class="composer" id="composer">
+          <input
+            id="objective"
+            name="objective"
+            type="text"
+            autocomplete="off"
+            placeholder="Research the auth flow; then implement the fix; then document it"
+            aria-label="Objective for ATLAS to orchestrate"
+          />
+          <button type="submit">Orchestrate</button>
+        </form>
+      </section>
+
+      <section class="panel" aria-label="Agent roster">
+        <header>
+          Roster
+          <span class="hint">8 specialists · read-only enforcers</span>
+        </header>
+        <ul class="roster" id="roster"></ul>
+      </section>
+    </main>
+
+    <nav class="nav" aria-label="Primary">
+      <button type="button" aria-current="page" data-view="console">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
+        Console
+      </button>
+      <button type="button" data-view="agents">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M4 20c0-3 2-5 5-5s5 2 5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15 20c0-2.4 1.4-4 3.5-4S22 17.6 22 20"/></svg>
+        Agents
+      </button>
+      <button type="button" data-view="memory">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>
+        Memory
+      </button>
+      <button type="button" data-view="evals">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        Evals
+      </button>
+    </nav>
+  </div>
+
+  <script type="module">
+    // Roster metadata mirrors src/agents + docs/architecture/agents.md.
+    const ROSTER = [
+      { id: "atlas",    role: "executive",  desc: "Coordinates objectives, delegates via AgentCoordinator", state: "idle" },
+      { id: "orion",    role: "research",   desc: "Research and discovery, read-only tools", state: "idle" },
+      { id: "sage",     role: "knowledge",  desc: "Knowledge and memory, semantic + procedural store", state: "idle" },
+      { id: "pulse",    role: "observation",desc: "Monitoring probes, graceful status reporting", state: "idle" },
+      { id: "forge",    role: "engineering",desc: "Engineering, write power gated behind flags", state: "idle" },
+      { id: "nova",     role: "creation",   desc: "Creation and synthesis, output to memory", state: "idle" },
+      { id: "vector",   role: "execution",  desc: "Authorized execution, confined and deny-by-default", state: "idle" },
+      { id: "vanguard", role: "security",   desc: "Governance, screening and compliance review", state: "idle" },
+    ];
+
+    // Minimal inline SVG glyphs (no emoji as icons).
+    const GLYPHS = {
+      executive:  '<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>',
+      research:   '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>',
+      knowledge:  '<path d="M4 19V5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M8 7h7M8 11h7"/>',
+      observation:'circle+path',
+      engineering:'<path d="M14.7 6.3a4 4 0 00-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 005.4-5.4l-2.4 2.4-2-2 2.4-2.4z"/>',
+      creation:   '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/>',
+      execution:  '<path d="M6 4l12 8-12 8V4z"/>',
+      security:   '<path d="M12 3l7 3v5c0 4.5-3 8.4-7 10-4-1.6-7-5.5-7-10V6l7-3z"/><path d="M9.5 12l1.8 1.8L15 10"/>',
+    };
+    function glyphSvg(role) {
+      const d = GLYPHS[role] === "circle+path"
+        ? '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>'
+        : GLYPHS[role];
+      return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+    }
+
+    const rosterEl = document.getElementById("roster");
+    for (const agent of ROSTER) {
+      const li = document.createElement("li");
+      li.className = "agent";
+      li.dataset.agentId = agent.id;
+      li.innerHTML = `
+        <span class="glyph" aria-hidden="true">${glyphSvg(agent.role)}</span>
+        <span class="meta">
+          <div class="name">${agent.id.charAt(0).toUpperCase()}${agent.id.slice(1)}</div>
+          <div class="role">${agent.desc}</div>
+        </span>
+        <span class="state ${agent.state}">${agent.state}</span>`;
+      rosterEl.appendChild(li);
+    }
+
+    // Composer: POST /run through the KAIROS HTTP API when available,
+    // with a graceful local echo otherwise (skeleton behavior).
+    const activityEl = document.getElementById("activity");
+    function log(who, text) {
+      const li = document.createElement("li");
+      li.className = "is-new";
+      li.innerHTML = `<span class="who">${who}</span>${text}`;
+      activityEl.prepend(li);
+    }
+
+    document.getElementById("composer").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const input = document.getElementById("objective");
+      const objective = input.value.trim();
+      if (objective === "") return;
+
+      log("YOU", objective);
+      input.value = "";
+
+      try {
+        const response = await fetch("/run", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ goal: objective }),
+        });
+        const body = await response.json().catch(() => ({}));
+        log("ATLAS", body.status !== undefined
+          ? `Orchestration ${body.status}.`
+          : `Accepted (HTTP ${response.status}).`);
+      } catch {
+        log("ATLAS", "API unreachable — skeleton UI running standalone.");
+      }
+    });
+
+    // Mobile nav: hash deep links (#console, #agents, #memory, #evals).
+    const nav = document.querySelector(".nav");
+    nav.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-view]");
+      if (button === null) return;
+      for (const b of nav.querySelectorAll("button")) b.removeAttribute("aria-current");
+      button.setAttribute("aria-current", "page");
+      location.hash = button.dataset.view;
+    });
+  </script>
+</body>
+</html>

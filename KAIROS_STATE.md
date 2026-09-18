@@ -61,11 +61,17 @@ Last synchronized: 2026-09-18
   VANGUARD (security/governance, policy screening + compliance review);
   smart + model-backed objective decomposition
 - Public API: IMPLEMENTED (HTTP server with auth, rate limiting, SSE)
+- Web interface: SKELETON IMPLEMENTED (web/index.html applying the
+  persisted design-system/kairos MASTER.md — AI-Native UI style, Inter,
+  light/dark tokens, mobile-first with bottom nav deep links)
+- Design system: PERSISTED (design-system/kairos/MASTER.md generated and
+  maintained with the ui-ux-pro-max skill; governs web, VS Code desktop
+  extension and future mobile surfaces)
 - Public SDK interface: IMPLEMENTED
-- AGI evaluation system: PARTIAL (experience analytics, the multi-agent
-  delegation-flow suite, and the reasoning, planning and memory benchmark
-  suites exist; generalization benchmarks from the constitution not yet
-  built)
+- AGI evaluation system: STRONG (experience analytics; delegation-flow
+  suite; reasoning, planning and memory benchmark suites; full-roster
+  suite F1–F8 scoring all eight agents; generalization benchmark G1–G7
+  for unseen objectives, paraphrase stability and zero-touch routing)
 
 ## Current Priority
 
@@ -75,11 +81,25 @@ Last synchronized: 2026-09-18
 2. Further evaluation suites per KAIROS_CONSTITUTION.md section 9
    (delegation, reasoning, planning and memory covered; generalization
    benchmarks next)
-3. Vector deployment: knowledge pipeline is available for SAGE-backed
-   retrieval in public KAIROS (Phase 4: web interface, accounts, public
-   agent creation)
+3. Phase 4 build-out on the web skeleton: wire the composer to the real
+   HTTP API session flows, add accounts and public agent creation
 
 ## Maintenance Notes
+
+- 2026-09-18: Added the full-roster evaluation suite (evals/agents/
+  roster.evaluation.test.ts, F1–F8: complete-roster registration, role
+  coverage for every specialist, executive exclusion, memory isolation
+  across the shared store, the read-only/gated privilege spectrum,
+  per-agent audit trails and full-roster orchestration). Added the
+  generalization benchmark (evals/generalization, G1–G7: unseen-objective
+  decomposition, paraphrase routing stability, zero-touch routing
+  scaling, cross-domain knowledge transfer, role-metadata routing over
+  renamed agents, monotonic capability, graceful OOD degradation).
+  Started Phase 4: web console skeleton (web/index.html + README) built
+  on the persisted ui-ux-pro-max design system with AI-Native UI style,
+  Inter typography, light/dark tokens, aria-live activity log,
+  focus-visible rings, 44px touch targets and hash deep-linked bottom
+  nav. 15 new tests; suite at 462 passing.
 
 - 2026-09-18: Completed the Phase 3 agent roster — instantiated VECTOR
   (authorized execution: gated, confined run-command via

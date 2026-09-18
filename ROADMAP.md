@@ -47,7 +47,7 @@
 ## Phase 4 — Public KAIROS
 
 - [x] API
-- [ ] Web interface
+- [x] Web interface (skeleton)
 - [ ] Accounts
 - [x] Usage controls
 - [ ] Public agent creation
@@ -58,7 +58,7 @@
 - [x] Long-horizon evaluation
 - [ ] Learning experiments
 - [ ] Multimodal evaluation
-- [ ] Generalization research
+- [x] Generalization research (benchmark)
 - [ ] Model training pipeline
 
 ## Phase 6 — KyleDev Ecosystem

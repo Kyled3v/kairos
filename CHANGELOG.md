@@ -13,7 +13,38 @@ All notable KAIROS changes are recorded here.
 - AGI vision
 - Architecture specification
 - Agent development instructions
-- Living project state## [0.1.0] - 2026-09-18 (batch 5)
+- Living project state## [0.1.0] - 2026-09-18 (batch 6)
+
+### Added
+
+- Full-roster evaluation suite (evals/agents/roster.evaluation.test.ts,
+  F1–F8): all eight named agents scored together — roster registration,
+  per-role routing coverage, executive exclusion, memory isolation over
+  one shared store, the read-only vs gated privilege spectrum, per-agent
+  experience audit trails, and full-roster orchestration.
+- Generalization benchmark suite (evals/generalization/
+  generalization.benchmark.test.ts, G1–G7): unseen-objective decomposition,
+  paraphrase routing stability, zero-touch routing scaling, cross-domain
+  knowledge transfer, role-metadata routing over renamed agents, monotonic
+  capability with growing rosters, and graceful out-of-distribution
+  degradation (never throws).
+- Phase 4 web console skeleton (web/index.html + web/README.md): objective
+  composer posting to POST /run with graceful offline degradation,
+  streaming-style aria-live activity log, agent roster panel, system
+  status strip, mobile-first bottom nav with hash deep links, reduced-
+  motion and focus-visible support.
+- Persisted KAIROS design system (design-system/kairos/MASTER.md)
+  generated with the ui-ux-pro-max skill: AI-Native UI style, Inter
+  typography, AI purple/cyan palette, light and dark token sets, dense
+  dashboard spacing — governing web, desktop (VS Code) and future mobile
+  surfaces.
+
+### Changed
+
+- ROADMAP: Phase 4 web interface marked skeleton-complete; Phase 5
+  generalization research checked.
+
+## [0.1.0] - 2026-09-18 (batch 5)
 
 ### Added
 

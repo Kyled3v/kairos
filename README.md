@@ -90,9 +90,11 @@ Per the Constitution (§9), claims of improvement must be supported by measurabl
 | Suite | Checks | Scope |
 |---|---|---|
 | `evals/agents/delegation.evaluation.test.ts` | E1–E9 | ATLAS → specialist delegation: routing correctness, failure-as-result, memory isolation, read-only enforcement |
+| `evals/agents/roster.evaluation.test.ts` | F1–F8 | Full roster (8 agents): role coverage, executive exclusion, isolation, privilege spectrum, audit trails |
 | `evals/reasoning/reasoning.benchmark.test.ts` | R1–R7 | Reasoning engines: determinism, contract shape, confidence bounds, model failure surfacing |
 | `evals/planning/planning.benchmark.test.ts` | P1–P8 | Planning + decomposition: determinism, plan consistency, JSON parsing, fallback behavior, role routing |
 | `evals/memory/memory.benchmark.test.ts` | M1–M10 | Memory system: round-trips across the four types, type isolation, importance ordering, store contract |
+| `evals/generalization/generalization.benchmark.test.ts` | G1–G7 | Generalization: unseen objectives, paraphrase stability, zero-touch routing, knowledge transfer, OOD degradation |
 
 Run the suites with `npm test -- evals`.
 
@@ -108,6 +110,15 @@ No feature is complete until:
 - version impact is assessed
 - security impact is assessed
 - changes are committed to Git
+
+## Web Console (Phase 4)
+
+`web/index.html` is the public KAIROS web console skeleton, built on the
+generated design system in `design-system/kairos/MASTER.md` (AI-Native UI
+style, Inter, light/dark tokens via the ui-ux-pro-max skill). It covers
+the web surface; the VS Code extension (`packages/vscode`) is the desktop
+surface, and the skeleton is mobile-first (bottom nav, 44px touch
+targets, safe areas) for the future mobile app. See `web/README.md`.
 
 ## Ownership
 
