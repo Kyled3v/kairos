@@ -17,3 +17,7 @@ tsconfig.tsbuildinfo
 test-output.txt
 dump-*.txt
 inspect-dump*.txt
+
+# Local agent tooling — reference clones and harness symlinks stay out of git
+reference-repos/
+.claude/
