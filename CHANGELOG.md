@@ -15,6 +15,32 @@ All notable KAIROS changes are recorded here.
 - Agent development instructions
 - Living project state
 
+## [0.1.0] - 2026-09-18 (batch 4)
+
+### Added
+
+- NOVA specialist agent (creation and synthesis) — sixth named agent:
+  read-only source/reference toolset, drafts and syntheses as scoped
+  semantic memories, creation session summaries as episodic memory.
+  NOVA's output is memory, never files. Exported from the public SDK as
+  NovaAgent.
+- Memory benchmark suite (evals/memory/memory.benchmark.test.ts, M1–M10):
+  round-trips for all four memory types, type isolation, limit and
+  importance-ordering semantics, store contract (get/delete/clear), and
+  shared-store scoping documentation.
+- createRunCommandTool(options) factory: workingRoot confinement (cwd
+  must resolve inside the root; missing cwd defaults to the root;
+  traversal and non-absolute paths rejected), configurable allowlist
+  subset and timeoutMs. The default runCommandTool keeps backward
+  compatibility.
+
+### Changed
+
+- run-command tool hardened: shell-operator rejection (command chaining,
+  pipes, redirection, command substitution, backticks, newline injection)
+  runs before the allowlist check so injected commands report their true
+  failure reason. Version bumped to 2.0.0.
+
 ## [0.1.0] - 2026-09-18 (batch 3)
 
 ### Added

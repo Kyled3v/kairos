@@ -58,7 +58,7 @@ Named specialist agents built on the generic KAIROS agent infrastructure. Each f
 | **SAGE** | Knowledge and memory | ✅ Implemented | Read-only source tools; semantic + procedural memory surface |
 | **PULSE** | Observation and monitoring | ✅ Implemented | Read-only probes; graceful `operational / degraded / unreachable` reporting |
 | **FORGE** | Engineering | ✅ Implemented | Read-only by default; `allowWrite` / `allowRunCommand` unlock gated write + allowlisted shell access |
-| **NOVA** | Creation and synthesis | ⏳ Planned | — |
+| **NOVA** | Creation and synthesis | ✅ Implemented | Read-only source/reference tools; drafts and syntheses stored as memory, never files |
 | **VECTOR** | Execution | ⏳ Planned | — |
 | **VANGUARD** | Security and governance | ⏳ Planned | — |
 
@@ -90,6 +90,7 @@ Per the Constitution (§9), claims of improvement must be supported by measurabl
 | `evals/agents/delegation.evaluation.test.ts` | E1–E9 | ATLAS → specialist delegation: routing correctness, failure-as-result, memory isolation, read-only enforcement |
 | `evals/reasoning/reasoning.benchmark.test.ts` | R1–R7 | Reasoning engines: determinism, contract shape, confidence bounds, model failure surfacing |
 | `evals/planning/planning.benchmark.test.ts` | P1–P8 | Planning + decomposition: determinism, plan consistency, JSON parsing, fallback behavior, role routing |
+| `evals/memory/memory.benchmark.test.ts` | M1–M10 | Memory system: round-trips across the four types, type isolation, importance ordering, store contract |
 
 Run the suites with `npm test -- evals`.
 

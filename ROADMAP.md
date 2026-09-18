@@ -35,14 +35,14 @@
 
 - [x] ATLAS
 - [x] ORION
-- [ ] NOVA
+- [x] NOVA
 - [x] FORGE
 - [x] SAGE
 - [x] PULSE
 - [ ] VECTOR
 - [ ] VANGUARD
 - [x] Tool permissions
-- [ ] Sandboxing
+- [x] Sandboxing
 
 ## Phase 4 — Public KAIROS
 

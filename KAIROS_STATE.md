@@ -26,7 +26,9 @@ Last synchronized: 2026-09-18
   ExperienceAnalyser, ExperienceExporter, feedback bridge
 - Tool system: registry, policy, gateway, observed gateway, selection policy,
   built-in tools (calculator, date-time, data lookup, file read/write,
-  list-directory, search-code, run-command, mock HTTP)
+  list-directory, search-code, run-command, mock HTTP); run-command hardened
+  with shell-operator rejection, optional working-root cwd confinement,
+  configurable allowlist and timeout
 - Security: BasicAuthorizationEngine, AuthorizedActionGateway, tool policies
 - Agent infrastructure: KairosAgent, AgentRegistry, AgentMessageBus,
   coordinator, supervisor, scoped memory stores, coding task runner
@@ -49,28 +51,33 @@ Last synchronized: 2026-09-18
 - Memory system: IMPLEMENTED (working/episodic/semantic/procedural)
 - Tool system: IMPLEMENTED (registry, policy, gateway, built-ins)
 - Agent orchestration: INFRASTRUCTURE IMPLEMENTED; named specialist agents
-  ATLAS (executive), ORION (research), SAGE (knowledge), PULSE (observation)
-  and FORGE (engineering, write/execute capability gated behind explicit
-  flags) instantiated; smart + model-backed objective decomposition
-  — NOVA/VECTOR/VANGUARD remaining
+  ATLAS (executive), ORION (research), SAGE (knowledge), PULSE (observation),
+  FORGE (engineering, write/execute capability gated behind explicit flags)
+  and NOVA (creation/synthesis, output-to-memory) instantiated; smart +
+  model-backed objective decomposition — VECTOR/VANGUARD remaining
 - Public API: IMPLEMENTED (HTTP server with auth, rate limiting, SSE)
 - Public SDK interface: IMPLEMENTED
 - AGI evaluation system: PARTIAL (experience analytics, the multi-agent
-  delegation-flow suite, and the reasoning and planning benchmark suites
-  exist; memory/generalization benchmarks from the constitution not yet
+  delegation-flow suite, and the reasoning, planning and memory benchmark
+  suites exist; generalization benchmarks from the constitution not yet
   built)
 
 ## Current Priority
 
-1. Remaining named specialist agents (NOVA, then VECTOR/VANGUARD)
+1. Remaining named specialist agents (VECTOR/VANGUARD)
    using the composition pattern (see ADR-001)
 2. Knowledge ingestion, retrieval and source validation (Phase 2 remainder;
    SAGE provides the agent-side storage and retrieval surface)
 3. Further evaluation suites per KAIROS_CONSTITUTION.md section 9 (delegation,
-   reasoning and planning covered; memory/generalization benchmarks next)
-4. Tool sandboxing hardening for run-command tool
+   reasoning, planning and memory covered; generalization benchmarks next)
 
 ## Maintenance Notes
+
+- 2026-09-18: Instantiated NOVA (creation/synthesis specialist), added the
+  memory benchmark suite (evals/memory, M1–M10) and hardened the
+  run-command tool (shell-operator rejection, working-root cwd
+  confinement via createRunCommandTool, configurable allowlist/timeout).
+  40 new tests; suite at 408 passing.
 
 - 2026-09-18: Instantiated FORGE (engineering specialist) — the first
   write-capable specialist, gated behind explicit allowWrite/allowRunCommand

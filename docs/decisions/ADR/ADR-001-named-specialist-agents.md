@@ -138,11 +138,31 @@ pipeline stages.
    later. Write/execute power is opt-in, explicit and audited — never
    inherited.
 2. **Benchmark suites**: evals/reasoning (R1–R7: determinism, contract shape,
-   confidence bounds, router wiring, model-failure surfacing) and
+   confidence bounds, router wiring, model-failure surfacing),
    evals/planning (P1–P8: plan determinism/consistency, model JSON parsing
-   and fallback, decomposition invariants, smart-strategy role routing)
-   extend the Constitution section 9 evaluation coverage to the reasoning
-   and planning pipelines.
+   and fallback, decomposition invariants, smart-strategy role routing) and
+   evals/memory (M1–M10: round-trips, type isolation, importance ordering,
+   store contract) extend the Constitution section 9 evaluation coverage to
+   the reasoning, planning and memory pipelines.
+
+## Amendment — 2026-09-18 (NOVA, sandboxing)
+
+1. **NOVA (creation/synthesis)**: sixth specialist. Its boundary inverts
+   FORGE's: where FORGE may write to the world under explicit grants, NOVA
+   never writes to the world at all — its output surface is memory. Drafts
+   and syntheses live in scoped semantic memory, creation sessions in
+   episodic memory; write/execute tools are rejected at construction and
+   blocked by policy. Creation "power" is delivered through returned
+   content, not filesystem or shell mutation.
+2. **run-command sandboxing**: the tool now rejects shell operators
+   (chaining, pipes, redirection, command substitution, backticks, newline
+   injection) before the allowlist check, and a createRunCommandTool
+   factory adds working-root confinement (cwd must resolve inside the
+   root; missing cwd defaults to the root; traversal and relative paths
+   are rejected), configurable allowlist subsets and timeouts. Agents that
+   execute commands should construct confined instances; the exported
+   default stays backward compatible for embedders that manage their own
+   confinement.
 
 ## Alternatives Considered
 

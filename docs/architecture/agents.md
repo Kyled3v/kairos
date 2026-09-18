@@ -31,6 +31,14 @@ episodic memory for session summaries, and fully audited tool calls.
 NOVA
 Creation and synthesis.
 
+Status: IMPLEMENTED (see src/agents/creation/nova-agent.ts and ADR-001).
+NOVA composes KairosAgent with a read-only source and reference toolset
+(read-file, list-directory, search-code, data-lookup, mock-http,
+calculator, date-time). Its output is memory, never files: drafts and
+syntheses are stored as scoped semantic memories and creation session
+summaries as episodic memory. Write/execute tools are rejected at
+construction and blocked by policy afterwards.
+
 FORGE
 Software engineering and technical work.
 
@@ -104,8 +112,9 @@ Decomposition modes (implemented in AtlasAgent.orchestrate):
   taking precedence over the built-in modes.
 
 Reproducible evaluation suites cover the delegation flow (evals/agents),
-the reasoning engines (evals/reasoning) and the planning pipeline
-(evals/planning) — see the README Evaluation section.
+the reasoning engines (evals/reasoning), the planning pipeline
+(evals/planning) and the memory system (evals/memory) — see the README
+Evaluation section.
 
 Delegation must preserve:
 

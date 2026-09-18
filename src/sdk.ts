@@ -150,6 +150,7 @@ export { AtlasAgent } from "./agents/executive/atlas-agent.js";
 export { SageAgent } from "./agents/knowledge/sage-agent.js";
 export { PulseAgent } from "./agents/observation/pulse-agent.js";
 export { ForgeAgent } from "./agents/engineering/forge-agent.js";
+export { NovaAgent } from "./agents/creation/nova-agent.js";
 export {
   createSmartStrategy,
   splitObjectiveIntoClauses,
@@ -185,6 +186,10 @@ export type {
 export type {
   ForgeAgentOptions,
 } from "./agents/engineering/forge-agent.js";
+
+export type {
+  NovaAgentOptions,
+} from "./agents/creation/nova-agent.js";
 
 export type {
   SmartSubTask,
