@@ -322,6 +322,55 @@
     .score-badge.pass .dot { background: var(--color-ok); }
     .score-badge .count { color: var(--color-muted-foreground); font-weight: 400; }
 
+    /* ═══ Memory view toolbar + rows ═══ */
+    .memory-toolbar {
+      display: flex; flex-wrap: wrap; gap: var(--space-1);
+      padding: var(--space-1);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .memory-toolbar input, .memory-toolbar select {
+      font: inherit; font-size: 0.85rem;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+      background: var(--color-background);
+      color: var(--color-foreground);
+      min-height: 40px;
+    }
+    .memory-toolbar input { flex: 1; min-width: 160px; }
+    .memory-toolbar button {
+      font: inherit; font-weight: 600; font-size: 0.85rem;
+      background: var(--color-primary); color: var(--color-on-primary);
+      border: none; border-radius: 8px;
+      padding: 9px 16px; cursor: pointer;
+      min-height: 40px;
+      transition: filter var(--transition);
+    }
+    .memory-toolbar button:hover { filter: brightness(1.12); }
+    .memory-toolbar :is(input, select, button):focus-visible {
+      outline: 2px solid var(--color-ring); outline-offset: 2px;
+    }
+    .memory-row { display: flex; flex-direction: column; gap: 2px; }
+    .memory-row .mem-meta {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      font-size: 0.68rem; color: var(--color-muted-foreground);
+    }
+    .memory-row .mem-meta .tag {
+      padding: 1px 8px; border-radius: 999px;
+      background: var(--color-background);
+      border: 1px solid var(--color-border);
+    }
+
+    /* Status view: three-state badges (shape + label, never color alone) */
+    .status-ok::before, .status-degraded::before, .status-unreachable::before {
+      content: ""; display: inline-block;
+      width: 9px; height: 9px; border-radius: 50%;
+      margin-right: 6px; vertical-align: baseline;
+    }
+    .status-ok::before { background: var(--color-ok); }
+    .status-degraded::before { background: var(--color-primary); border-radius: 2px; /* square = degraded */ }
+    .status-unreachable::before { background: var(--color-destructive); border-radius: 0; /* sharp = down */ clip-path: polygon(50% 0, 100% 100%, 0 100%); /* triangle */ }
+
     /* Mobile nav (bottom, ≤5 items, deep-linkable anchors) */
     .nav {
       display: flex; justify-content: space-around;
@@ -372,6 +421,8 @@
       <nav class="topnav" aria-label="Primary">
         <button type="button" aria-current="page" data-view="console">Console</button>
         <button type="button" data-view="agents">Agents</button>
+        <button type="button" data-view="memory">Memory</button>
+        <button type="button" data-view="status">Status</button>
         <button type="button" data-view="evals">Evals</button>
       </nav>
       <span class="spacer"></span>
@@ -435,6 +486,79 @@
       </div>
     </section>
 
+    <!-- ═══ MEMORY ═══ -->
+    <section class="view" id="view-memory" aria-label="Memory inspector">
+      <div class="panel" style="margin: var(--space-2) var(--space-3);">
+        <header>
+          Memory Inspector
+          <span class="hint">GET /memory · agent scope via metadata.agentId</span>
+        </header>
+        <div class="memory-toolbar">
+          <input
+            id="memory-query"
+            type="search"
+            autocomplete="off"
+            placeholder="Search memory content…"
+            aria-label="Memory search query"
+          />
+          <select id="memory-agent" aria-label="Filter by agent scope">
+            <option value="">All agents (raw store)</option>
+          </select>
+          <select id="memory-type" aria-label="Filter by memory type">
+            <option value="">All types</option>
+            <option value="working">working</option>
+            <option value="episodic">episodic</option>
+            <option value="semantic">semantic</option>
+            <option value="procedural">procedural</option>
+          </select>
+          <button type="button" id="memory-refresh">Search</button>
+        </div>
+        <div class="evals-wrap">
+          <ul class="activity" id="memory-list" style="max-height: 480px;" aria-live="polite">
+            <li>Search the KAIROS memory store. Agent scope filters by metadata.agentId (AgentScopedMemoryStore contract).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ STATUS (PULSE) ═══ -->
+    <section class="view" id="view-status" aria-label="System status">
+      <div class="status-strip" aria-label="Health summary">
+        <div class="status-card">
+          <div class="label">Aggregate</div>
+          <div class="value" id="pulse-aggregate">checking…</div>
+        </div>
+        <div class="status-card">
+          <div class="label">Last probe</div>
+          <div class="value" id="pulse-timestamp">—</div>
+        </div>
+        <div class="status-card">
+          <div class="label">Probe calls</div>
+          <div class="value" id="pulse-calls">—</div>
+        </div>
+      </div>
+      <div class="console-grid">
+        <section class="panel" aria-label="PULSE probe detail">
+          <header>
+            PULSE Probe Detail
+            <span class="hint">operational / degraded / unreachable — a monitor never throws</span>
+          </header>
+          <ul class="activity" id="pulse-detail" style="max-height: none;">
+            <li><span class="who">PULSE</span>Run a probe to populate the status detail.</li>
+          </ul>
+        </section>
+        <section class="panel" aria-label="Recent experience records">
+          <header>
+            Recent Experience
+            <span class="hint">GET /experience — audit trail across agents</span>
+          </header>
+          <ul class="activity" id="experience-list" style="max-height: none;">
+            <li><span class="who">AUDIT</span>Recent orchestration records appear here.</li>
+          </ul>
+        </section>
+      </div>
+    </section>
+
     <!-- ═══ EVALS ═══ -->
     <section class="view" id="view-evals" aria-label="Evaluation suites">
       <div class="panel" style="margin: var(--space-2) var(--space-3);">
@@ -466,6 +590,14 @@
       <button type="button" data-view="agents">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M4 20c0-3 2-5 5-5s5 2 5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15 20c0-2.4 1.4-4 3.5-4S22 17.6 22 20"/></svg>
         Agents
+      </button>
+      <button type="button" data-view="memory">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>
+        Memory
+      </button>
+      <button type="button" data-view="status">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        Status
       </button>
       <button type="button" data-view="evals">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
@@ -552,8 +684,131 @@
       rosterMini.appendChild(li);
     }
 
+    // ── Memory inspector: GET /memory with agent-scope filter ──
+    const memoryList = document.getElementById("memory-list");
+    const memoryQuery = document.getElementById("memory-query");
+    const memoryAgent = document.getElementById("memory-agent");
+    const memoryType = document.getElementById("memory-type");
+
+    for (const agent of ROSTER) {
+      const opt = document.createElement("option");
+      opt.value = agent.id;
+      opt.textContent = `${agent.id} scope only`;
+      memoryAgent.appendChild(opt);
+    }
+
+    function renderMemoryRow(memory) {
+      const li = document.createElement("li");
+      li.className = "memory-row";
+      const meta = memory.metadata ?? {};
+      const tags = [
+        `type: ${memory.type}`,
+        `importance: ${Number(memory.importance ?? 0).toFixed(2)}`,
+      ];
+      if (meta.agentId !== undefined) tags.push(`scope: ${meta.agentId}`);
+      if (meta.topic !== undefined) tags.push(`topic: ${meta.topic}`);
+      if (meta.source !== undefined) tags.push(`source: ${meta.source}`);
+      li.innerHTML = `
+        <div>${String(memory.content ?? "")}</div>
+        <div class="mem-meta">${tags.map((t) => `<span class="tag">${t}</span>`).join("")}</div>`;
+      return li;
+    }
+
+    async function searchMemory() {
+      memoryList.innerHTML = "";
+      const params = new URLSearchParams();
+      if (memoryQuery.value.trim() !== "") params.set("query", memoryQuery.value.trim());
+      if (memoryType.value !== "") params.set("type", memoryType.value);
+      params.set("limit", "25");
+      try {
+        const res = await fetch(`/memory?${params.toString()}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const memories = await res.json();
+        const scope = memoryAgent.value;
+        const visible = scope === ""
+          ? memories
+          : memories.filter((m) => (m.metadata?.agentId ?? "") === scope);
+        if (visible.length === 0) {
+          memoryList.innerHTML = "<li>No memories matched. Try a different query or scope.</li>";
+          return;
+        }
+        for (const memory of visible) memoryList.appendChild(renderMemoryRow(memory));
+      } catch (error) {
+        memoryList.innerHTML = `<li>Memory API unreachable (${error.message}) — start the KAIROS server to inspect live memory.</li>`;
+      }
+    }
+
+    document.getElementById("memory-refresh").addEventListener("click", searchMemory);
+    memoryQuery.addEventListener("keydown", (e) => { if (e.key === "Enter") searchMemory(); });
+
+    // ── Status view: PULSE probe + experience trail ──
+    const pulseAggregate = document.getElementById("pulse-aggregate");
+    const pulseTimestamp = document.getElementById("pulse-timestamp");
+    const pulseCalls = document.getElementById("pulse-calls");
+    const pulseDetail = document.getElementById("pulse-detail");
+    const experienceList = document.getElementById("experience-list");
+
+    function setAggregate(state) {
+      pulseAggregate.className = `value status-${state}`;
+      pulseAggregate.textContent = state;
+    }
+
+    async function runStatusProbe() {
+      pulseDetail.innerHTML = "";
+      setAggregate("degraded");
+      const probeRows = [];
+
+      // Probe 1: data-lookup kairos.status via GET /memory-free data API is
+      // not exposed directly; instead infer liveness from the experience
+      // trail and memory API (the same signals PULSE observes).
+      const checks = [];
+      const t0 = Date.now();
+      try {
+        const res = await fetch("/memory?query=kairos&limit=1");
+        checks.push({ name: "memory API", ok: res.ok, ms: Date.now() - t0 });
+      } catch (error) {
+        checks.push({ name: "memory API", ok: false, ms: Date.now() - t0, error: error.message });
+      }
+      const t1 = Date.now();
+      try {
+        const res = await fetch("/experience?limit=5");
+        const records = res.ok ? await res.json() : [];
+        checks.push({ name: "experience API", ok: res.ok, ms: Date.now() - t1 });
+        for (const record of records.slice(0, 5)) {
+          const li = document.createElement("li");
+          li.innerHTML = `<span class="who">${String(record.sessionId ?? "agent").slice(0, 12)}</span>${String(record.goal ?? record.outcome ?? "record")} — ${record.outcome ?? "?"}`;
+          experienceList.prepend(li);
+        }
+      } catch (error) {
+        checks.push({ name: "experience API", ok: false, ms: Date.now() - t1, error: error.message });
+      }
+
+      const failed = checks.filter((c) => !c.ok);
+      const state = failed.length === 0 ? "operational" : failed.length === checks.length ? "unreachable" : "degraded";
+      setAggregate(state);
+
+      for (const check of checks) {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="who">PROBE</span>${check.name}: ${check.ok ? "ok" : "failed"} (${check.ms}ms)${check.error !== undefined ? ` — ${check.error}` : ""}`;
+        pulseDetail.appendChild(li);
+      }
+      const now = new Date();
+      pulseTimestamp.textContent = now.toLocaleTimeString();
+      pulseCalls.textContent = String(checks.length);
+      probeRows.push(state);
+    }
+
+    async function onStatusView() {
+      if (apiLive) {
+        await runStatusProbe();
+      } else {
+        setAggregate("unreachable");
+        pulseDetail.innerHTML = '<li><span class="who">PULSE</span>API offline — probes would report degraded/unreachable, never throw.</li>';
+      }
+    }
+
     // ── View routing with hash deep links ──
-    const VIEWS = ["console", "agents", "evals"];
+    const VIEWS = ["console", "agents", "memory", "status", "evals"];
     function show(view) {
       if (!VIEWS.includes(view)) view = "console";
       for (const v of VIEWS) {
@@ -563,12 +818,14 @@
         if (b.dataset.view === view) b.setAttribute("aria-current", "page");
         else b.removeAttribute("aria-current");
       }
+      if (view === "status") void onStatusView();
     }
     for (const b of document.querySelectorAll("[data-view]")) {
       b.addEventListener("click", () => { location.hash = b.dataset.view; });
     }
     window.addEventListener("hashchange", () => show(location.hash.slice(1)));
-    show(location.hash.slice(1));
+    // Initial view activation happens after the API liveness probe below
+    // sets apiLive — see the bootstrap call at the end of this module.
 
     // ── API state detection ──
     const apiState = document.getElementById("api-state");
@@ -579,6 +836,10 @@
     } catch { apiLive = false; }
     apiState.textContent = apiLive ? "API live" : "API offline (demo mode)";
     apiState.classList.toggle("live", apiLive);
+
+    // Bootstrap the initial view only after apiLive is resolved, so a
+    // deep link to #status probes with the correct liveness knowledge.
+    show(location.hash.slice(1));
 
     // ── Streaming orchestration: POST /run with an SSE fallback;
     //    the delegation board visualizes per-worker progress. ──

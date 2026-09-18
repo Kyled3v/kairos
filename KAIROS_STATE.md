@@ -89,6 +89,18 @@ Last synchronized: 2026-09-18
 
 ## Maintenance Notes
 
+- 2026-09-18: Extended the web console with a Memory Inspector view
+  (GET /memory with type filter and per-agent scope filtering by
+  metadata.agentId) and a PULSE-style Status view (three-state health
+  badge using shape+color+label, probe detail with latency, live
+  experience trail from GET /experience). Added the Playwright E2E
+  suite (tests/e2e/console.spec.mjs, 15 tests: routing, view content,
+  delegation demo choreography, offline behavior, accessibility
+  invariants) with a dependency-free static server; vitest.config.ts
+  excludes tests/e2e from the unit run. The E2E suite caught and fixed a
+  real bootstrap-order bug: deep links to #status probed before the API
+  liveness check resolved. 462 unit/eval tests + 15 E2E tests passing.
+
 - 2026-09-18: Upgraded the web console to live orchestration: SSE-first
   streaming (POST /stream start/result/error events) with POST /run
   fallback, a live delegation board that previews ATLAS smart routing

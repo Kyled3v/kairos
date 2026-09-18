@@ -49,6 +49,8 @@ backed by a persisted page override from the ui-ux-pro-max skill:
 |---|---|---|
 | **Console** | `MASTER.md` | Streaming activity log, delegation board, composer |
 | **Agents** | `pages/agents.md` | Responsive profile card grid (≤1200px); status pills carry a dot **and** a text label — never color alone |
+| **Memory** | `MASTER.md` | Search + type filter + per-agent scope (metadata.agentId), tag metadata per memory |
+| **Status** | `MASTER.md` | PULSE-style three-state health (shape + color + label), probe detail, live experience trail |
 | **Evals** | `pages/evals.css` rules inline | Highlighted "checks" column (accent tint), row hover, horizontal-scroll wrapper so wide tables never break layout |
 
 ## Live streaming
@@ -78,7 +80,26 @@ The console expects the existing KAIROS HTTP server contract:
 
 - `POST /stream` — `{ goal, maxCycles? }` → SSE (`start`, `result`, `done`, `error`)
 - `POST /run` — `{ goal, maxCycles?, decompose?, sessionId? }` → `MultiCycleResult` JSON (fallback)
-- `GET /experience?sessionId=<agentId>&limit=1` — API liveness check + per-agent audit trails
+- `GET /memory?query=&type=&limit=` — memory records; the Memory view
+  filters per-agent scope client-side by `metadata.agentId` (the
+  `AgentScopedMemoryStore` contract)
+- `GET /experience?limit=5` — API liveness check, audit trail on the
+  Status view, per-agent trails via `?sessionId=<agentId>`
+
+## E2E tests
+
+Playwright specs live in `tests/e2e/console.spec.mjs` (15 tests): hash
+routing across all five views, agents/evals content, memory-inspector
+offline behavior, the delegation demo choreography, and accessibility
+invariants (aria-live regions, touch targets, reduced-motion). Run:
+
+```bash
+npx playwright test          # starts tests/e2e/static-server.mjs on :4173
+```
+
+The E2E run deliberately exercises the console's offline demo mode so
+no backend is needed in CI; a separate smoke pass against a live KAIROS
+server is a future addition.
 
 ## Accessibility & interaction rules applied
 

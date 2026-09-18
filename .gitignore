@@ -22,3 +22,7 @@ inspect-dump*.txt
 reference-repos/
 .claude/
 .agents/uux-extra-skills/
+
+# Playwright artifacts
+test-results/
+playwright-report/

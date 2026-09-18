@@ -13,7 +13,34 @@ All notable KAIROS changes are recorded here.
 - AGI vision
 - Architecture specification
 - Agent development instructions
-- Living project state## [0.1.0] - 2026-09-18 (batch 7)
+- Living project state## [0.1.0] - 2026-09-18 (batch 8)
+
+### Added
+
+- Memory Inspector view (web console): GET /memory search with memory-
+  type filter and per-agent scope filtering by metadata.agentId (the
+  AgentScopedMemoryStore contract), importance/topic/source tags per
+  record.
+- Status view driven by PULSE-style probes: three-state aggregate badge
+  (operational/degraded/unreachable encoded with shape + color + label),
+  probe latency detail, and a live experience trail from
+  GET /experience. A monitor never throws — offline state degrades the
+  report.
+- Playwright E2E suite (tests/e2e/console.spec.mjs, 15 tests) with a
+  dependency-free static server: hash routing across all five views,
+  agents/evals content, memory-inspector offline behavior, delegation
+  demo choreography (routing, chip states, DEMO labels), and
+  accessibility invariants (aria-live, touch targets, reduced-motion).
+- vitest.config.ts excluding tests/e2e from the unit run (Playwright
+  specs run through npx playwright test).
+
+### Fixed
+
+- Web console bootstrap order: a deep link to #status triggered the
+  health probe before the API liveness check resolved, leaving the
+  aggregate stuck on "checking…" (caught by the new E2E suite).
+
+## [0.1.0] - 2026-09-18 (batch 7)
 
 ### Changed
 
