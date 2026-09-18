@@ -21,3 +21,4 @@ inspect-dump*.txt
 # Local agent tooling — reference clones and harness symlinks stay out of git
 reference-repos/
 .claude/
+.agents/uux-extra-skills/
