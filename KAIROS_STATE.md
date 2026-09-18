@@ -49,8 +49,9 @@ Last synchronized: 2026-09-18
 - Memory system: IMPLEMENTED (working/episodic/semantic/procedural)
 - Tool system: IMPLEMENTED (registry, policy, gateway, built-ins)
 - Agent orchestration: INFRASTRUCTURE IMPLEMENTED; named specialist agents
-  ATLAS (executive, delegates via AgentCoordinator) and ORION (research)
-  instantiated — NOVA/FORGE/SAGE/PULSE/VECTOR/VANGUARD remaining
+  ATLAS (executive, delegates via AgentCoordinator), ORION (research) and
+  SAGE (knowledge) instantiated; smart + model-backed objective
+  decomposition — NOVA/FORGE/PULSE/VECTOR/VANGUARD remaining
 - Public API: IMPLEMENTED (HTTP server with auth, rate limiting, SSE)
 - Public SDK interface: IMPLEMENTED
 - AGI evaluation system: PARTIAL (experience analytics exist; benchmark
@@ -58,13 +59,19 @@ Last synchronized: 2026-09-18
 
 ## Current Priority
 
-1. Remaining named specialist agents (SAGE, PULSE, FORGE next) using the
+1. Remaining named specialist agents (PULSE, FORGE, NOVA next) using the
    composition pattern (see ADR-001)
-2. Knowledge ingestion, retrieval and source validation (Phase 2 remainder)
+2. Knowledge ingestion, retrieval and source validation (Phase 2 remainder;
+   SAGE provides the agent-side storage and retrieval surface)
 3. Evaluation suites per KAIROS_CONSTITUTION.md section 9
 4. Tool sandboxing hardening for run-command tool
 
 ## Maintenance Notes
+
+- 2026-09-18: Added model-backed decomposition (orchestrate decomposition
+  "model" with deterministic fallback) and instantiated SAGE (knowledge and
+  memory specialist) with semantic/procedural/episodic knowledge storage.
+  17 new tests; suite at 316 passing.
 
 - 2026-09-18: Added smart auto-decomposition to AtlasAgent.orchestrate():
   objectives are split into clauses and routed to workers by role keyword

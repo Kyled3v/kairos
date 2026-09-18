@@ -147,6 +147,7 @@ export { AgentRegistry } from "./agents/identity.js";
 export { AgentMessageBus } from "./agents/message-bus.js";
 export { OrionAgent } from "./agents/research/orion-agent.js";
 export { AtlasAgent } from "./agents/executive/atlas-agent.js";
+export { SageAgent } from "./agents/knowledge/sage-agent.js";
 export {
   createSmartStrategy,
   splitObjectiveIntoClauses,
@@ -169,6 +170,10 @@ export type {
   AtlasAgentOptions,
   OrchestrationOutcome,
 } from "./agents/executive/atlas-agent.js";
+
+export type {
+  SageAgentOptions,
+} from "./agents/knowledge/sage-agent.js";
 
 export type {
   SmartSubTask,

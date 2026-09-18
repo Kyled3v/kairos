@@ -37,7 +37,7 @@
 - [x] ORION
 - [ ] NOVA
 - [ ] FORGE
-- [ ] SAGE
+- [x] SAGE
 - [ ] PULSE
 - [ ] VECTOR
 - [ ] VANGUARD

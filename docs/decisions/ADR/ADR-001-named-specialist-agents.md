@@ -93,6 +93,22 @@ the executive would make orchestration results non-deterministic and harder
 to audit. Model-based planning remains available through the existing model
 pipeline stages.
 
+## Amendment — 2026-09-18 (model-backed mode, SAGE)
+
+1. **Model decomposition mode**: orchestrate(decomposition: "model") uses
+   ModelGoalDecomposer to propose sub-goal descriptions, then routes them
+   with the same deterministic ClauseRouter as the smart strategy — the
+   model decides WHAT, the deterministic router decides WHO. The model's
+   own Understand/Plan/Execute fallback template is detected and treated as
+   unavailability, falling back to the smart strategy. Outcomes record the
+   decompositionMode actually used.
+2. **SAGE (knowledge)**: third specialist, same composition pattern. Its
+   special boundary is "writes only to its own memory scope": read-only
+   tools, facts as semantic memory, procedures as procedural memory, ingest
+   batches with episodic session records. Its "knowledge" role makes it
+   automatically routable by the smart strategy (document/summarise/organise
+   clauses).
+
 ## Alternatives Considered
 
 - **Subclassing KairosAgent**: rejected — the project prefers composition

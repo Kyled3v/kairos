@@ -33,6 +33,16 @@ All notable KAIROS changes are recorded here.
   DelegatableAgent (KairosAgent or specialist composition agents).
 - Shared assertNoWriteExecuteCapability tool-boundary helper and
   DelegatableAgent type in src/agents/tool-boundary.ts.
+- SAGE specialist agent (knowledge and memory) — third named agent on the
+  generic infrastructure: read-only source toolset, learnFact/learnProcedure
+  (semantic + procedural memory), batch ingest with episodic session records,
+  policy-enforced boundaries. Exported from the public SDK as SageAgent.
+- Model-backed decomposition: AtlasAgent.orchestrate(decomposition: "model")
+  proposes sub-goals via ModelGoalDecomposer and routes them deterministically
+  by role; falls back to the smart strategy whenever the model is unavailable
+  or returns its Understand/Plan/Execute fallback template. Outcomes now
+  report which decompositionMode produced the plan. Exported from the SDK as
+  createModelStrategy.
 - Smart orchestrator strategy: AtlasAgent.orchestrate() now decomposes
   objectives without a caller-provided function — deterministic clause
   splitting (semicolons/newlines/"then"/numbered items) plus keyword→role

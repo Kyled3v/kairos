@@ -24,7 +24,7 @@ import type { Tool } from "../../core/tools/types.js";
 import type { DelegatableAgent } from "../tool-boundary.js";
 import type { DelegationRequest, DelegationResult } from "../coordination-types.js";
 import type { PipelineDependencies } from "../../core/orchestrator/pipeline.js";
-import { createSmartStrategy } from "./decomposition.js";
+import { createSmartStrategy, createModelStrategy } from "./decomposition.js";
 
 export interface AtlasAgentOptions {
   /** Registry id for this agent. Defaults to the stable "atlas". */
@@ -58,6 +58,8 @@ export interface OrchestrationOutcome {
   readonly succeeded: number;
   readonly failed: number;
   readonly status: "complete" | "partial" | "failed" | "empty";
+  /** Which decomposition produced the plan ("model" includes fallbacks). */
+  readonly decompositionMode: "explicit" | "smart" | "model" | "single";
   readonly synthesis: string;
   readonly completedAt: Date;
 }
@@ -86,6 +88,11 @@ export interface OrchestrationOutcome {
 export class AtlasAgent {
   private readonly agent: KairosAgent;
   private readonly collector: ToolCallCollector;
+  private readonly modelOptions?: {
+    router?: ModelRouter;
+    providerId?: string;
+    modelId?: string;
+  };
   readonly toolRegistry: ToolRegistryType;
   readonly policy: ToolPolicyType;
   readonly toolGateway: ObservedToolGateway;
@@ -172,6 +179,11 @@ export class AtlasAgent {
     this.collector = collector;
     this.coordinator = options.coordinator ?? new AgentCoordinator();
     this.coordinator.register(this.agent);
+    this.modelOptions = {
+      ...(options.router !== undefined ? { router: options.router } : {}),
+      ...(options.providerId !== undefined ? { providerId: options.providerId } : {}),
+      ...(options.modelId !== undefined ? { modelId: options.modelId } : {}),
+    };
   }
 
   /** Stable agent identity (id "atlas", executive role metadata). */
@@ -218,6 +230,10 @@ export class AtlasAgent {
    * - options.decomposition: "smart" (default) — deterministic clause
    *   splitting and keyword→role routing across registered workers, so
    *   no caller-provided function is needed.
+   * - options.decomposition: "model" — a ModelGoalDecomposer proposes
+   *   sub-goals via the configured router; routing stays deterministic.
+   *   Falls back to "smart" whenever the model is unavailable or returns
+   *   unusable output. Requires modelRouter/providerId/modelId options.
    * - options.decomposition: "single" — the whole objective is routed to
    *   one eligible worker (round-robin), no splitting.
    */
@@ -226,15 +242,15 @@ export class AtlasAgent {
     options: {
       /** Explicit strategy — takes precedence over decomposition mode. */
       strategy?: (goal: string) => readonly { id: string; goal: string; workerId: string }[];
-      /** "smart" (default) or "single" when no explicit strategy is given. */
-      decomposition?: "smart" | "single";
-      /** Maximum clauses the smart strategy may produce. Default 6. */
+      /** "smart" (default), "model", or "single" without an explicit strategy. */
+      decomposition?: "smart" | "model" | "single";
+      /** Maximum clauses the smart/model strategy may produce. Default 6. */
       maxSubTasks?: number;
       /** Also records the outcome as ATLAS episodic memory (default true). */
       record?: boolean;
     } = {},
   ): Promise<OrchestrationOutcome> {
-    const subTasks = this.buildSubTasks(goal, options);
+    const { subTasks, decompositionMode } = await this.buildSubTasks(goal, options);
     const delegationResults: DelegationResult[] = [];
 
     for (const task of subTasks) {
@@ -268,6 +284,7 @@ export class AtlasAgent {
       succeeded,
       failed,
       status,
+      decompositionMode,
       synthesis:
         `Objective "${goal}": ${succeeded}/${delegationResults.length} sub-task(s) succeeded` +
         (failed > 0 ? `, ${failed} failed.` : "."),
@@ -287,34 +304,64 @@ export class AtlasAgent {
 
   /**
    * Builds the sub-task plan for an objective: explicit strategy wins,
-   * otherwise the smart (default) or single built-in decomposition runs
+   * otherwise the built-in smart (default), model, or single mode runs
    * against the coordinator's registered non-executive workers.
+   * Returns the plan together with the mode actually used — model mode
+   * reports "smart" when it fell back.
    */
-  private buildSubTasks(
+  private async buildSubTasks(
     goal: string,
     options: {
       strategy?: (goal: string) => readonly { id: string; goal: string; workerId: string }[];
-      decomposition?: "smart" | "single";
+      decomposition?: "smart" | "model" | "single";
       maxSubTasks?: number;
     },
-  ): readonly { id: string; goal: string; workerId: string }[] {
+  ): Promise<{
+    subTasks: readonly { id: string; goal: string; workerId: string }[];
+    decompositionMode: "explicit" | "smart" | "model" | "single";
+  }> {
     if (options.strategy !== undefined) {
-      return options.strategy(goal);
+      return { subTasks: options.strategy(goal), decompositionMode: "explicit" };
     }
 
     const workers = this.coordinator
       .listAgents()
       .filter((agent) => agent.identity.id !== this.identity.id);
 
+    const maxClauses = options.maxSubTasks;
+
+    if (options.decomposition === "model") {
+      if (
+        this.modelOptions === undefined ||
+        this.modelOptions.router === undefined ||
+        this.modelOptions.providerId === undefined ||
+        this.modelOptions.modelId === undefined
+      ) {
+        // No model configured — deterministic behaviour, mode "smart".
+        const smart = createSmartStrategy(workers, {
+          ...(maxClauses !== undefined ? { maxClauses } : {}),
+        });
+        return { subTasks: smart(goal), decompositionMode: "smart" };
+      }
+      const modelStrategy = createModelStrategy(workers, {
+        router: this.modelOptions.router,
+        providerId: this.modelOptions.providerId,
+        modelId: this.modelOptions.modelId,
+        ...(maxClauses !== undefined ? { maxClauses } : {}),
+      });
+      const subTasks = await modelStrategy(goal);
+      return { subTasks, decompositionMode: "model" };
+    }
+
     if (options.decomposition === "single") {
       const smart = createSmartStrategy(workers, { maxClauses: 1 });
-      return smart(goal);
+      return { subTasks: smart(goal), decompositionMode: "single" };
     }
 
     const smart = createSmartStrategy(workers, {
-      ...(options.maxSubTasks !== undefined ? { maxClauses: options.maxSubTasks } : {}),
+      ...(maxClauses !== undefined ? { maxClauses } : {}),
     });
-    return smart(goal);
+    return { subTasks: smart(goal), decompositionMode: "smart" };
   }
 
   /** Persists an objective as scoped semantic memory. */

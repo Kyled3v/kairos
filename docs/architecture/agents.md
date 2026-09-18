@@ -37,6 +37,11 @@ Software engineering and technical work.
 SAGE
 Knowledge, memory and information organization.
 
+Status: IMPLEMENTED (see src/agents/knowledge/sage-agent.ts and ADR-001).
+SAGE composes KairosAgent with a read-only source toolset, storing facts as
+semantic memory, procedures as procedural memory and ingest sessions as
+episodic memory — all inside its own scoped view.
+
 PULSE
 Observation, monitoring and environmental awareness.
 
