@@ -2,6 +2,34 @@
 
 All notable KAIROS changes are recorded here.
 
+## [0.1.0] - 2026-09-21 (batch 9 — Phase 0: development workflow + accounts)
+
+### Added
+
+- Development scripts: `npm run dev` (tsx watch server with tools +
+  accounts), `dev:web` (static console server), `start` (production-style
+  server boot), `canary` (C1–C8 smoke checks), `test:e2e`.
+- Accounts bootstrap in src/server.ts: `--accounts` flag or
+  KAIROS_ACCOUNTS=1 enables the public-agent endpoints; dev accounts are
+  provisioned from KAIROS_DEV_ACCOUNTS (comma-separated names) with
+  tokens printed once at startup.
+- AuthMiddleware account-token support: when an accounts registry is
+  configured, registered account bearer tokens are accepted alongside
+  the global KAIROS_API_TOKEN. Route handlers still verify ownership, so
+  a valid account token grants nothing beyond that account's resources.
+- Playwright workers pinned to 1 locally (CI keeps 4): parallel browser
+  launches crashed chromium on constrained dev machines.
+
+### Fixed
+
+- E2E static server SPA-fallback swallowed API paths: GET /experience
+  returned 200 HTML, so the console wrongly reported "API live" and the
+  demo-mode delegation choreography test could never run. API paths now
+  answer 404 on the static server, making demo mode deterministic.
+- cli.ts: repaired a corrupted (mojibake) goal banner and a
+  non-interpolated config log line.
+- server.ts: double closing brace from the accounts edit.
+
 ## [0.1.0] - 2026-09-04
 
 ### Added

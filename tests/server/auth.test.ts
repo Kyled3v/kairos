@@ -58,4 +58,29 @@ describe("AuthMiddleware", () => {
     const result = auth.check("3.3.3.3", "Bearer secret");
     expect(result.allowed).toBe(true);
   });
+
+  it("accepts a registered account token when accountTokens is provided", () => {
+    const auth = new AuthMiddleware({
+      apiToken: "secret",
+      accountTokens: { hasToken: (token) => token === "acct-token" },
+    });
+    expect(auth.check("9.9.9.9", "Bearer acct-token").allowed).toBe(true);
+  });
+
+  it("still rejects unknown tokens when accountTokens is provided", () => {
+    const auth = new AuthMiddleware({
+      apiToken: "secret",
+      accountTokens: { hasToken: (token) => token === "acct-token" },
+    });
+    const result = auth.check("9.9.9.9", "Bearer not-a-known-token");
+    expect(result.allowed).toBe(false);
+    expect(result.status).toBe(401);
+  });
+
+  it("rejects a known account token when no accountTokens resolver is configured", () => {
+    const auth = new AuthMiddleware({ apiToken: "secret" });
+    const result = auth.check("9.9.9.9", "Bearer acct-token");
+    expect(result.allowed).toBe(false);
+    expect(result.status).toBe(401);
+  });
 });

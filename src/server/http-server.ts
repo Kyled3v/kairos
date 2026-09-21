@@ -7,6 +7,11 @@ import { createKairos } from "../factory/index.js";
 import { AuthMiddleware } from "./auth.js";
 import { withSpan } from "../telemetry/index.js";
 import { ExperienceAnalyser } from "../core/experience/analyser.js";
+import { AccountRegistry, type Account } from "../accounts/accounts.js";
+import { AgentRegistry } from "../agents/identity.js";
+import { KairosAgent } from "../agents/agent.js";
+import { InMemoryMemoryStore } from "../core/memory/in-memory-store.js";
+import type { MemoryStore } from "../core/memory/types.js";
 
 export interface KairosServerOptions {
   readonly dependencies: PipelineDependencies;
@@ -15,6 +20,19 @@ export interface KairosServerOptions {
   readonly defaultMaxCycles?: number;
   readonly apiToken?: string;
   readonly requestsPerMinute?: number;
+  /**
+   * Account registry enabling Phase 4 public agent creation. When set,
+   * POST /agents creates agents under accounts (bearer-token auth) and
+   * GET /agents lists the caller's agents. Public agents run goals via
+   * POST /agents/:id/run under the account's quota.
+   */
+  readonly accounts?: AccountRegistry;
+  /**
+   * Backing store for public agents' memory. KairosAgent wraps this in
+   * AgentScopedMemoryStore, so each public agent's memory is isolated by
+   * its agent id. Defaults to an in-memory store per agent.
+   */
+  readonly publicAgentMemoryStore?: MemoryStore;
 }
 // 1 MB is plenty for a goal string plus a few options; guards against an
 // unbounded request body being buffered fully into memory.
@@ -330,10 +348,175 @@ async function handleRunStream(
     res.end();
   }
 }
+// ── Public agent creation (Phase 4) ─────────────────────────────────
+
+interface PublicAgentEntry {
+  readonly agent: KairosAgent;
+  readonly ownerAccountId: string;
+}
+
+const publicAgents = new Map<string, PublicAgentEntry>();
+const publicAgentRegistries = new Map<string, AgentRegistry>();
+
+function bearerTokenOf(req: IncomingMessage): string | undefined {
+  const header = req.headers["authorization"];
+  return header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+}
+
+function accountOf(req: IncomingMessage, accounts: AccountRegistry): Account | undefined {
+  return accounts.byToken(bearerTokenOf(req));
+}
+
+async function handleCreateAgent(
+  req: IncomingMessage,
+  res: ServerResponse,
+  options: KairosServerOptions,
+): Promise<void> {
+  const accounts = options.accounts as AccountRegistry;
+  const account = accountOf(req, accounts);
+  if (account === undefined) {
+    sendJson(res, 401, { error: "A valid account bearer token is required to create agents." });
+    return;
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = await readJsonBody(req);
+  } catch (error) {
+    sendJson(res, 400, { error: error instanceof Error ? error.message : "Invalid request body." });
+    return;
+  }
+
+  const agentId = body["agentId"];
+  if (typeof agentId !== "string" || !/^[a-z][a-z0-9-]{2,31}$/.test(agentId)) {
+    sendJson(res, 400, {
+      error: '"agentId" is required: 3-32 chars, lowercase letters, digits, hyphens, starting with a letter.',
+    });
+    return;
+  }
+
+  try {
+    accounts.registerAgent(account.id, agentId);
+  } catch (error) {
+    sendJson(res, 409, { error: error instanceof Error ? error.message : String(error) });
+    return;
+  }
+
+  // Each public agent gets its own registry + scoped view over the
+  // server's shared memory store — isolation matches the named agents.
+  let registry = publicAgentRegistries.get("shared");
+  if (registry === undefined) {
+    registry = new AgentRegistry();
+    publicAgentRegistries.set("shared", registry);
+  }
+  const identity = registry.register({ id: agentId, name: agentId, metadata: {
+    role: "public",
+    owner: account.id,
+    capabilities: ["goal-execution"],
+    constraints: ["read-only tool access", "scoped memory isolation", "account quota limited"],
+  } });
+
+  const agent = new KairosAgent({
+    identity,
+    dependencies: options.dependencies,
+    // KairosAgent wraps this store in AgentScopedMemoryStore, so the
+    // public agent's memory is isolated by its agent id.
+    memoryStore: options.publicAgentMemoryStore ?? new InMemoryMemoryStore(),
+    experienceStore: options.experienceStore,
+    session: { sessionId: agentId, ...(options.defaultMaxCycles !== undefined ? { maxCycles: options.defaultMaxCycles } : {}) },
+  });
+
+  publicAgents.set(agentId, { agent, ownerAccountId: account.id });
+
+  sendJson(res, 201, {
+    agentId,
+    owner: account.id,
+    createdAt: new Date().toISOString(),
+    runEndpoint: `/agents/${agentId}/run`,
+  });
+}
+
+async function handleListAgents(
+  req: IncomingMessage,
+  res: ServerResponse,
+  options: KairosServerOptions,
+): Promise<void> {
+  const accounts = options.accounts as AccountRegistry;
+  const account = accountOf(req, accounts);
+  if (account === undefined) {
+    sendJson(res, 401, { error: "A valid account bearer token is required." });
+    return;
+  }
+  const agents = accounts.agentsOwnedBy(account.id).map((agentId) => ({
+    agentId,
+    runEndpoint: `/agents/${agentId}/run`,
+  }));
+  sendJson(res, 200, { accountId: account.id, agents });
+}
+
+async function handleRunPublicAgent(
+  req: IncomingMessage,
+  res: ServerResponse,
+  options: KairosServerOptions,
+  agentId: string,
+): Promise<void> {
+  const accounts = options.accounts as AccountRegistry;
+  const account = accountOf(req, accounts);
+  if (account === undefined) {
+    sendJson(res, 401, { error: "A valid account bearer token is required." });
+    return;
+  }
+  const entry = publicAgents.get(agentId);
+  if (entry === undefined) {
+    sendJson(res, 404, { error: `No public agent: ${agentId}` });
+    return;
+  }
+  if (entry.ownerAccountId !== account.id) {
+    sendJson(res, 403, { error: "This agent belongs to another account." });
+    return;
+  }
+
+  if (!accounts.recordRun(account.id)) {
+    sendJson(res, 429, {
+      error: `Run quota exceeded (${account.runsPerMinute} runs/minute).`,
+    });
+    return;
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = await readJsonBody(req);
+  } catch (error) {
+    sendJson(res, 400, { error: error instanceof Error ? error.message : "Invalid request body." });
+    return;
+  }
+  const goal = body["goal"];
+  if (typeof goal !== "string" || goal.trim() === "") {
+    sendJson(res, 400, { error: '"goal" is required and must be a non-empty string.' });
+    return;
+  }
+
+  try {
+    const result = await entry.agent.run(goal);
+    sendJson(res, 200, result);
+  } catch (error) {
+    sendJson(res, 500, {
+      error: "Agent run failed: " + (error instanceof Error ? error.message : String(error)),
+    });
+  }
+}
+
 export function createKairosServer(options: KairosServerOptions): Server {
   const auth = new AuthMiddleware({
     ...(options.apiToken !== undefined ? { apiToken: options.apiToken } : {}),
     ...(options.requestsPerMinute !== undefined ? { rateLimit: { requestsPerMinute: options.requestsPerMinute } } : {}),
+    // Account bearer tokens are accepted alongside the global token so
+    // public-agent routes work when KAIROS_API_TOKEN is configured.
+    // Route handlers still verify ownership, so a valid account token
+    // grants nothing beyond that account's own resources.
+    ...(options.accounts !== undefined
+      ? { accountTokens: { hasToken: (token: string) => options.accounts!.byToken(token) !== undefined } }
+      : {}),
   });
 
   return createServer((req, res) => {
@@ -362,6 +545,16 @@ export function createKairosServer(options: KairosServerOptions): Server {
 
         if (req.method === "POST" && url.pathname === "/stream") { await withSpan("kairos.http", "http.stream", { "http.method": "POST", "http.path": "/stream" }, () => handleRunStream(req, res, options)); }
         else if (req.method === "POST" && url.pathname === "/run") { await withSpan("kairos.http", "http.run", { "http.method": "POST", "http.path": "/run" }, () => handleRun(req, res, options)); }
+        else if (options.accounts !== undefined && req.method === "POST" && url.pathname === "/agents") {
+          await withSpan("kairos.http", "http.agents.create", { "http.method": "POST", "http.path": "/agents" }, () => handleCreateAgent(req, res, options));
+        }
+        else if (options.accounts !== undefined && req.method === "GET" && url.pathname === "/agents") {
+          await handleListAgents(req, res, options);
+        }
+        else if (options.accounts !== undefined && req.method === "POST" && /^\/agents\/([^/]+)\/run$/.exec(url.pathname) !== null) {
+          const agentId = decodeURIComponent(/^\/agents\/([^/]+)\/run$/.exec(url.pathname)?.[1] ?? "");
+          await withSpan("kairos.http", "http.agents.run", { "http.method": "POST", "http.path": "/agents/:id/run" }, () => handleRunPublicAgent(req, res, options, agentId));
+        }
         else if (req.method === "GET" && url.pathname === "/experience") { await withSpan("kairos.http", "http.experience", { "http.method": "GET", "http.path": "/experience" }, () => handleListExperience(url, res, options)); }
         else {
           const experienceIdMatch = /^\/experience\/([^/]+)$/.exec(url.pathname);

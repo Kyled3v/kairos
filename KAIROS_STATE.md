@@ -3,7 +3,7 @@
 Version: 0.1.0
 Phase: 0 → 1 transition (Foundation complete, Core Intelligence implemented)
 
-Last synchronized: 2026-09-18
+Last synchronized: 2026-09-21
 
 ## Completed
 
@@ -78,16 +78,30 @@ Last synchronized: 2026-09-18
 
 ## Current Priority
 
-1. All eight named specialist agents instantiated (Phase 3 roster
-   complete); remaining Phase 3 item: none — sandboxing shipped with the
-   hardened run-command tool
-2. Further evaluation suites per KAIROS_CONSTITUTION.md section 9
-   (delegation, reasoning, planning and memory covered; generalization
-   benchmarks next)
-3. Phase 4 remainder: accounts, usage-gated public agent creation;
-   optional server-rendered views beyond the single-file console
+1. Phase 4 remainder: persistent (file-backed) account store and
+   usage-gated public agent creation surfaced in the web console
+2. Public website (kairos.kyledev.site) built on the persisted design
+   system, separate from the console
+3. Further evaluation suites per KAIROS_CONSTITUTION.md section 9
 
 ## Maintenance Notes
+
+- 2026-09-21: Phase 0 — landed the development workflow and the Phase 4
+  accounts work. Added npm scripts (dev / dev:web / start / canary /
+  test:e2e); `npm run dev` now boots the HTTP server with tools and
+  accounts enabled. Wired the AccountRegistry into src/server.ts bootstrap
+  (--accounts or KAIROS_ACCOUNTS=1; KAIROS_DEV_ACCOUNTS="Name,Name"
+  provisions dev accounts with one-time printed tokens). AuthMiddleware
+  now accepts registered account bearer tokens when accounts are
+  configured (ownership still enforced per route; 3 new auth tests).
+  Fixed the E2E static server swallowing API paths (SPA fallback returned
+  200 HTML for GET /experience, so the console reported "API live" and
+  demo-mode tests never ran) and pinned Playwright to 1 local worker
+  after chromium crashes under parallel launches. Repaired cli.ts
+  mojibake banner and non-interpolated log. Verified live: server boot,
+  account provisioning, POST /agents, GET /agents, POST /agents/:id/run
+  (201/401/403/429 paths), POST /run, POST /stream SSE, canary 8/8,
+  typecheck clean, 482 unit/eval tests passing, 15/15 E2E passing.
 
 - 2026-09-18: Extended the web console with a Memory Inspector view
   (GET /memory with type filter and per-agent scope filtering by

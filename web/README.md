@@ -99,7 +99,13 @@ npx playwright test          # starts tests/e2e/static-server.mjs on :4173
 
 The E2E run deliberately exercises the console's offline demo mode so
 no backend is needed in CI; a separate smoke pass against a live KAIROS
-server is a future addition.
+server is a future addition. The static server answers 404 for KAIROS
+API paths (`/run`, `/stream`, `/agents`, `/memory`, `/experience`) so
+the liveness probe deterministically reports offline; do not SPA-fallback
+those paths.
+
+Playwright runs with 1 worker locally (parallel chromium launches crash
+on constrained machines); CI uses 4 workers via the `CI` env var.
 
 ## Accessibility & interaction rules applied
 

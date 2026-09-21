@@ -5,10 +5,14 @@
  * Usage:
  *   npx tsx src/server.ts [--port 4000] [--experience path] [--memory path]
  *     [--provider anthropic --model <id> --api-key <key> | --ollama --model <id>]
- *     [--tools]
+ *     [--tools] [--accounts]
  *
  * Endpoints:
  *   POST /run              { goal, maxCycles?, decompose?, sessionId? } -> MultiCycleResult
+ *   POST /stream           { goal, maxCycles? } -> SSE (start/result/done/error)
+ *   POST /agents           { agentId } (account bearer token) -> agent descriptor
+ *   GET  /agents           (account bearer token) -> the caller's agents
+ *   POST /agents/:id/run   { goal } (owner token) -> MultiCycleResult
  *   GET  /experience        ?outcome=&goalContains=&modelProvider=&sessionId=&since=&limit= -> ExperienceRecord[]
  *   GET  /experience/:id    -> ExperienceRecord | 404
  *   GET  /memory            ?query=&type=&limit= -> Memory[]
@@ -34,6 +38,7 @@ import { AnthropicProvider } from "./intelligence/models/providers/anthropic-pro
 import { OllamaProvider } from "./intelligence/models/providers/ollama-provider.js";
 import type { PipelineDependencies } from "./core/orchestrator/pipeline.js";
 import { initTelemetry } from "./telemetry/index.js";
+import { AccountRegistry } from "./accounts/accounts.js";
 
 function buildToolGateway(): ObservedToolGateway {
   const registry = new ToolRegistry();
@@ -62,6 +67,7 @@ async function main(): Promise<void> {
   const experiencePath = typeof args["experience"] === "string" ? args["experience"] : undefined;
   const memoryPath = typeof args["memory"] === "string" ? args["memory"] : undefined;
   const useTools = args["tools"] === true;
+  const useAccounts = args["accounts"] === true || process.env["KAIROS_ACCOUNTS"] === "1";
 
   const providerFlag = typeof args["provider"] === "string" ? args["provider"] : undefined;
   const modelFlag = typeof args["model"] === "string" ? args["model"] : undefined;
@@ -120,11 +126,44 @@ async function main(): Promise<void> {
     memoryPath !== undefined ? { type: "file", filePath: memoryPath } : { type: "memory" },
   );
 
-  const server = createKairosServer({ dependencies, experienceStore, memory });
+  // Phase 4 accounts: enabled with --accounts or KAIROS_ACCOUNTS=1.
+  // Dev accounts are provisioned from KAIROS_DEV_ACCOUNTS (comma-separated
+  // display names) so local development can exercise the public-agent
+  // endpoints immediately. Tokens are printed once at startup and never
+  // persisted to disk by the server itself.
+  let accounts: AccountRegistry | undefined;
+  if (useAccounts) {
+    accounts = new AccountRegistry();
+    const devNames = (process.env["KAIROS_DEV_ACCOUNTS"] ?? "Dev")
+      .split(",")
+      .map((name) => name.trim())
+      .filter((name) => name !== "");
+    for (const displayName of devNames) {
+      const account = accounts.register({ displayName });
+      console.log(`Account "${displayName}" (${account.id}) token: ${account.token}`);
+    }
+  }
+
+  const apiToken = options_apiToken();
+  const server = createKairosServer({
+    dependencies,
+    experienceStore,
+    memory,
+    ...(accounts !== undefined ? { accounts } : {}),
+    ...(apiToken !== undefined ? { apiToken } : {}),
+  });
 
   server.listen(port, () => {
     console.log(`KAIROS HTTP server listening on http://localhost:${port}`);
+    if (accounts !== undefined) {
+      console.log("Public agent endpoints enabled: POST /agents, GET /agents, POST /agents/:id/run");
+    }
   });
+}
+
+function options_apiToken(): string | undefined {
+  const fromEnv = process.env["KAIROS_API_TOKEN"];
+  return typeof fromEnv === "string" && fromEnv.trim() !== "" ? fromEnv : undefined;
 }
 
 const isDirectRun =

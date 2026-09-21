@@ -98,6 +98,24 @@ Per the Constitution (§9), claims of improvement must be supported by measurabl
 
 Run the suites with `npm test -- evals`.
 
+## Development Workflow
+
+```bash
+npm run dev        # KAIROS HTTP API on :4000 (tools + accounts enabled)
+npm run dev:web    # static web console on :4173
+npm start          # production-style API boot
+npm run canary     # C1–C8 post-deploy smoke checks
+npm test           # unit + eval suites (vitest)
+npm run test:e2e   # Playwright web console suite
+npm run typecheck  # tsc --noEmit
+```
+
+With `npm run dev`, accounts are enabled (`--accounts`) and dev accounts
+are provisioned from `KAIROS_DEV_ACCOUNTS` (comma-separated names;
+defaults to one "Dev" account). Account tokens are printed once at
+startup. Authenticated endpoints: `POST /agents`, `GET /agents`,
+`POST /agents/:id/run` (per-account run quotas and agent limits apply).
+
 ## Development Rule
 
 No feature is complete until:

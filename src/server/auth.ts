@@ -11,6 +11,14 @@ export interface RateLimitOptions {
 export interface AuthOptions {
   readonly apiToken?: string;
   readonly rateLimit?: RateLimitOptions;
+  /**
+   * Account token resolver (Phase 4 public agents). When provided, a
+   * bearer token that matches a registered account is accepted in
+   * addition to the global apiToken. Route handlers still resolve the
+   * account themselves, so unknown resources under a valid account
+   * token still fail closed (403/404).
+   */
+  readonly accountTokens?: { hasToken(token: string): boolean };
 }
 
 export interface AuthResult {
@@ -26,18 +34,25 @@ interface WindowEntry {
 export class AuthMiddleware {
   private readonly apiToken: string | undefined;
   private readonly requestsPerMinute: number;
+  private readonly accountTokens: { hasToken(token: string): boolean } | undefined;
   private readonly windows = new Map<string, WindowEntry>();
 
   constructor(options: AuthOptions = {}) {
     this.apiToken = options.apiToken ?? process.env["KAIROS_API_TOKEN"];
     this.requestsPerMinute = options.rateLimit?.requestsPerMinute ?? 60;
+    this.accountTokens = options.accountTokens;
   }
 
   check(ip: string, authHeader: string | undefined): AuthResult {
     // Auth check
     if (this.apiToken !== undefined && this.apiToken.trim() !== "") {
       const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
-      if (token === undefined || token !== this.apiToken) {
+      const matchesGlobal = token !== undefined && token === this.apiToken;
+      const matchesAccount =
+        !matchesGlobal &&
+        token !== undefined &&
+        this.accountTokens?.hasToken(token) === true;
+      if (!matchesGlobal && !matchesAccount) {
         return { allowed: false, reason: "Unauthorized", status: 401 };
       }
     }
